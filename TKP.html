@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TKP Planning &amp; CPAK</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+    min-height: 100vh;
+    padding: 16px;
+    color: #2d3748;
+  }
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  header {
+    background: linear-gradient(135deg, #2c5282 0%, #2b6cb0 100%);
+    color: white;
+    padding: 22px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  header .title-block h1 { font-size: 26px; margin-bottom: 4px; font-weight: 600; }
+  header .title-block p { font-size: 13px; opacity: 0.9; }
+  .logo-block {
+    background: white;
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  }
+  .logo-block img { height: 48px; display: block; }
+
+  nav.top-nav {
+    background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 8px 30px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  nav.top-nav button {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #4a5568;
+    font-weight: 500;
+  }
+  nav.top-nav button:hover { background: #edf2f7; }
+  nav.top-nav button.active { background: #2b6cb0; color: white; }
+  nav.top-nav button.primary { background: #38a169; color: white; }
+  nav.top-nav button.primary:hover { background: #2f855a; }
+  nav.top-nav .spacer { flex: 1; }
+  nav.top-nav .sync-status { font-size: 12px; color: #718096; padding: 0 10px; }
+  nav.top-nav .sync-status.synced { color: #38a169; }
+  nav.top-nav .sync-status.error { color: #c53030; }
+
+  main { padding: 24px 30px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  h2.view-title { font-size: 22px; color: #1a365d; margin-bottom: 18px; font-weight: 600; }
+  h3.section-title { font-size: 16px; color: #2d3748; margin-bottom: 12px; font-weight: 600; }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #2b6cb0; color: white; }
+  .btn-primary:hover { background: #2c5282; }
+  .btn-success { background: #38a169; color: white; }
+  .btn-success:hover { background: #2f855a; }
+  .btn-danger { background: #fed7d7; color: #c53030; }
+  .btn-danger:hover { background: #feb2b2; }
+  .btn-secondary { background: #e2e8f0; color: #2d3748; }
+  .btn-secondary:hover { background: #cbd5e0; }
+
+  /* Forms */
+  .form-row { margin-bottom: 16px; }
+  .form-row label {
+    display: block;
+    font-size: 13px;
+    color: #4a5568;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    background: white;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    outline: none;
+    border-color: #2b6cb0;
+  }
+  .form-row .hint { font-size: 11px; color: #a0aec0; margin-top: 4px; }
+
+  /* Case cards */
+  .cases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  .case-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .case-card:hover {
+    border-color: #2b6cb0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(43, 108, 176, 0.15);
+  }
+  .case-card .case-ref { font-size: 16px; font-weight: 700; color: #1a365d; margin-bottom: 4px; }
+  .case-card .case-meta { font-size: 12px; color: #718096; margin-bottom: 10px; }
+  .case-card .case-side { display: inline-block; font-size: 11px; padding: 2px 8px; background: #ebf8ff; color: #2b6cb0; border-radius: 10px; font-weight: 600; }
+  .case-card .case-status {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 11px;
+  }
+  .case-card .badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .badge-preop { background: #c6f6d5; color: #22543d; }
+  .badge-intraop { background: #feebc8; color: #7b341e; }
+  .badge-empty { background: #edf2f7; color: #718096; }
+  .badge-match { background: #c6f6d5; color: #22543d; }
+  .badge-mismatch { background: #fed7d7; color: #c53030; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #718096;
+  }
+  .empty-state .icon { font-size: 48px; opacity: 0.4; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; margin-bottom: 14px; }
+
+  /* Archive */
+  .archive-day {
+    margin-bottom: 22px;
+  }
+  .archive-day h3 {
+    font-size: 14px;
+    color: #2c5282;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+  }
+
+  /* Case detail */
+  .case-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .case-header .case-title { font-size: 22px; font-weight: 600; color: #1a365d; flex: 1; }
+  .case-header .meta { font-size: 13px; color: #718096; }
+
+  .case-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 20px;
+  }
+  .case-tabs button {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #718096;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+  }
+  .case-tabs button:hover { color: #2b6cb0; }
+  .case-tabs button.active { color: #1a365d; border-bottom-color: #2b6cb0; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Pre-op canvas */
+  .work-area {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 18px;
+  }
+  .canvas-wrapper {
+    background: #1a202c;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 500px;
+    max-height: 75vh;
+  }
+  canvas { display: block; max-width: 100%; max-height: 75vh; cursor: crosshair; }
+  .side-panel { display: flex; flex-direction: column; gap: 12px; }
+  .step-indicator { background: #ebf8ff; border: 2px solid #2b6cb0; border-radius: 8px; padding: 14px; }
+  .step-indicator .step-num { font-size: 11px; color: #2b6cb0; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .step-indicator .step-text { font-size: 14px; color: #1a365d; font-weight: 600; line-height: 1.4; }
+  .step-indicator .step-help { font-size: 12px; color: #4a5568; margin-top: 6px; line-height: 1.4; }
+  .landmark-list { background: #f7fafc; border-radius: 8px; padding: 10px; font-size: 12px; }
+  .landmark-list .item { display: flex; align-items: center; padding: 3px 0; gap: 8px; color: #718096; }
+  .landmark-list .item.done { color: #2d3748; }
+  .landmark-list .item.current { color: #2b6cb0; font-weight: 600; }
+  .landmark-list .dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e0; flex-shrink: 0; }
+  .landmark-list .item.done .dot { background: #38a169; }
+  .landmark-list .item.current .dot { background: #2b6cb0; }
+
+  .upload-zone {
+    border: 3px dashed #cbd5e0;
+    border-radius: 12px;
+    padding: 40px 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f7fafc;
+  }
+  .upload-zone:hover { border-color: #2b6cb0; background: #ebf8ff; }
+  .upload-zone.dragover { border-color: #2b6cb0; background: #bee3f8; }
+  .upload-zone .icon { font-size: 40px; color: #cbd5e0; margin-bottom: 10px; }
+  .upload-zone h3 { font-size: 16px; color: #2d3748; margin-bottom: 4px; }
+  .upload-zone p { font-size: 12px; color: #718096; }
+  .upload-zone input { display: none; }
+
+  /* Intra-op calculator */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .input-group {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .input-group:focus-within { border-color: #2b6cb0; }
+  .input-group label { display: block; font-weight: 600; color: #2d3748; margin-bottom: 4px; font-size: 15px; }
+  .input-group .description { font-size: 12px; color: #718096; margin-bottom: 10px; }
+  .input-row { display: flex; align-items: center; gap: 8px; }
+  .input-group input {
+    flex: 1; padding: 10px 12px; font-size: 18px;
+    border: 2px solid #cbd5e0; border-radius: 6px; background: white; color: #2d3748;
+  }
+  .unit { font-size: 16px; color: #718096; font-weight: 500; }
+
+  /* Result panel */
+  .result-panel {
+    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+    border: 2px solid #2b6cb0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .result-panel.empty { background: #f7fafc; border-color: #e2e8f0; }
+  .result-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .type-badge {
+    background: #2b6cb0; color: white;
+    font-size: 22px; font-weight: 700; padding: 8px 18px; border-radius: 8px;
+  }
+  .result-title { font-size: 18px; font-weight: 600; color: #1a365d; }
+  .result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .detail-card { background: white; border-radius: 8px; padding: 10px 12px; border-left: 4px solid #2b6cb0; }
+  .detail-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .detail-value { font-size: 16px; font-weight: 600; color: #2d3748; }
+  .detail-value small { font-size: 11px; color: #4a5568; font-weight: 500; margin-left: 4px; }
+
+  /* CPAK matrix */
+  .matrix-section { margin-top: 20px; }
+  .matrix-section h3 { font-size: 14px; color: #2d3748; margin-bottom: 10px; font-weight: 600; }
+  .matrix {
+    display: grid;
+    grid-template-columns: auto repeat(3, 1fr);
+    gap: 3px; background: #e2e8f0; padding: 3px; border-radius: 8px;
+  }
+  .matrix-cell {
+    background: white; padding: 10px 6px; text-align: center;
+    font-size: 12px; border-radius: 4px; transition: all 0.2s; position: relative;
+  }
+  .matrix-header { background: #2c5282; color: white; font-weight: 600; font-size: 11px; }
+  .matrix-row-label {
+    background: #2c5282; color: white; font-weight: 600; font-size: 11px;
+    writing-mode: vertical-rl; text-orientation: mixed; padding: 6px 4px;
+  }
+  .matrix-type {
+    font-weight: 700; color: #2b6cb0; font-size: 14px;
+    display: block; margin-bottom: 2px;
+  }
+  .matrix-cell.preop {
+    background: #c6f6d5; border: 2px solid #38a169;
+  }
+  .matrix-cell.intraop {
+    background: #feebc8; border: 2px solid #dd6b20;
+  }
+  .matrix-cell.both {
+    background: #bee3f8; border: 2px solid #2b6cb0;
+  }
+  .matrix-cell .marker {
+    position: absolute; top: 2px; right: 2px;
+    font-size: 9px; font-weight: 700;
+  }
+
+  /* Comparison */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .comp-card {
+    background: white; border-radius: 10px; padding: 16px; border: 2px solid #e2e8f0;
+  }
+  .comp-card.preop { border-color: #38a169; }
+  .comp-card.intraop { border-color: #dd6b20; }
+  .comp-card .comp-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .comp-card.preop .comp-title { color: #22543d; }
+  .comp-card.intraop .comp-title { color: #7b341e; }
+  .comp-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    border-bottom: 1px solid #f7fafc; font-size: 13px;
+  }
+  .comp-row:last-child { border-bottom: none; }
+  .comp-row .label { color: #718096; }
+  .comp-row .value { font-weight: 600; color: #2d3748; }
+
+  .diff-summary {
+    background: #f7fafc; border-radius: 10px; padding: 16px; margin-top: 14px;
+  }
+  .diff-summary .diff-title { font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .diff-row {
+    display: grid; grid-template-columns: 100px 1fr 1fr 1fr; gap: 10px;
+    padding: 6px 0; font-size: 13px; align-items: center;
+  }
+  .diff-row.header { font-weight: 700; color: #718096; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+  .diff-row .diff { font-weight: 600; }
+  .diff-row .diff.ok { color: #38a169; }
+  .diff-row .diff.warn { color: #dd6b20; }
+
+  /* Action bar */
+  .action-bar {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;
+    padding-top: 16px; border-top: 1px solid #e2e8f0;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: white; border-radius: 12px; padding: 24px;
+    max-width: 500px; width: 100%;
+    max-height: 90vh; overflow: auto;
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 14px; color: #1a365d; }
+  .modal p { font-size: 14px; color: #4a5568; line-height: 1.5; margin-bottom: 14px; }
+  .modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+  .hidden { display: none !important; }
+  .text-muted { color: #718096; }
+  .text-small { font-size: 12px; }
+
+  footer {
+    text-align: center; padding: 16px; color: #718096; font-size: 11px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  @media (max-width: 900px) {
+    .work-area { grid-template-columns: 1fr; }
+    .calc-grid { grid-template-columns: 1fr; }
+    .comp-grid { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: repeat(2, 1fr); }
+    .diff-row { grid-template-columns: 80px 1fr 1fr 1fr; gap: 6px; font-size: 12px; }
+  }
+  @media (max-width: 600px) {
+    header { flex-direction: column; align-items: flex-start; padding: 18px; }
+    main { padding: 18px; }
+    .result-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="title-block">
+      <h1>TKP Planning &amp; CPAK</h1>
+      <p>Pre-operatieve voorbereiding en intra-operatieve verificatie</p>
+    </div>
+    <div class="logo-block">
+      <img id="logo" alt="Orthopedie Herentals">
+    </div>
+  </header>
+
+  <nav class="top-nav">
+    <button data-view="dashboard" class="active">Vandaag</button>
+    <button data-view="archive">Archief</button>
+    <button data-view="newcase" class="primary">+ Nieuwe TKP</button>
+    <div class="spacer"></div>
+    <span class="sync-status" id="sync-status">Niet gesynchroniseerd</span>
+    <button id="btn-sync-folder" title="Koppel een OneDrive-map voor automatische sync tussen PC's">⟲ Map koppelen</button>
+    <button id="btn-export" title="Exporteer alle TKP's als JSON-bestand">↓ Export</button>
+    <button id="btn-import" title="Importeer TKP's vanuit JSON">↑ Import</button>
+    <input type="file" id="import-file" accept=".json" style="display:none">
+  </nav>
+
+  <main>
+
+    <!-- ======= Dashboard view ======= -->
+    <div id="view-dashboard" class="view active">
+      <h2 class="view-title">TKP's voor vandaag <span id="dashboard-date" class="text-small text-muted"></span></h2>
+      <div id="today-cases"></div>
+    </div>
+
+    <!-- ======= Archive view ======= -->
+    <div id="view-archive" class="view">
+      <h2 class="view-title">Archief</h2>
+      <div id="archive-cases"></div>
+    </div>
+
+    <!-- ======= New case view ======= -->
+    <div id="view-newcase" class="view">
+      <h2 class="view-title">Nieuwe TKP aanmaken</h2>
+      <form id="new-case-form" style="max-width: 600px;">
+        <div class="form-row">
+          <label for="nc-ref">Patient referentie</label>
+          <input type="text" id="nc-ref" placeholder="bv. SB-1965, TKP-001, initialen + DOB...">
+          <div class="hint">⚠ Data wordt lokaal in je browser opgeslagen. Vermijd volledige patientennamen om privacy redenen.</div>
+        </div>
+        <div class="form-row">
+          <label for="nc-date">Datum ingreep</label>
+          <input type="date" id="nc-date">
+        </div>
+        <div class="form-row">
+          <label for="nc-side">Knie</label>
+          <select id="nc-side">
+            <option value="right">Rechts</option>
+            <option value="left">Links</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="nc-notes">Notities (optioneel)</label>
+          <textarea id="nc-notes" rows="3" placeholder="Bv. type prothese, opmerkingen pre-op..."></textarea>
+        </div>
+        <div class="action-bar">
+          <button type="submit" class="btn btn-success">Aanmaken &amp; openen</button>
+          <button type="button" class="btn btn-secondary" onclick="navigate('dashboard')">Annuleren</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ======= Case detail view ======= -->
+    <div id="view-casedetail" class="view">
+      <div class="case-header">
+        <button class="btn btn-secondary" onclick="navigate('dashboard')">← Terug</button>
+        <div class="case-title" id="cd-title">—</div>
+        <div class="meta" id="cd-meta">—</div>
+        <button class="btn btn-danger" id="cd-delete">Verwijderen</button>
+      </div>
+
+      <div class="case-tabs">
+        <button data-tab="preop" class="active">📷 Pre-op (Rx meting)</button>
+        <button data-tab="intraop">🩺 Intra-op CPAK</button>
+        <button data-tab="compare">⇆ Vergelijking</button>
+      </div>
+
+      <!-- Pre-op tab -->
+      <div id="tab-preop" class="tab-content active">
+        <div id="preop-upload-wrapper">
+          <label class="upload-zone" id="preop-upload-zone">
+            <div class="icon">⊞</div>
+            <h3>Upload long-leg standing Rx</h3>
+            <p>Sleep een bestand hierheen, of klik om te selecteren (.jpg, .png, .webp)</p>
+            <input type="file" id="preop-file-input" accept="image/*">
+          </label>
+        </div>
+
+        <div id="preop-work-area" class="work-area hidden">
+          <div class="canvas-wrapper">
+            <canvas id="preop-canvas"></canvas>
+          </div>
+          <aside class="side-panel">
+            <div class="step-indicator">
+              <div class="step-num" id="preop-step-num">Stap 1 / 6</div>
+              <div class="step-text" id="preop-step-text">—</div>
+              <div class="step-help" id="preop-step-help">—</div>
+            </div>
+            <div class="landmark-list" id="preop-landmark-list"></div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" id="preop-undo" style="flex:1;">↶ Vorige</button>
+              <button class="btn btn-danger" id="preop-reset" style="flex:1;">Reset</button>
+            </div>
+            <button class="btn btn-secondary" id="preop-change-image">Andere Rx uploaden</button>
+            <div style="font-size: 11px; color: #718096; line-height: 1.5; padding: 6px;">
+              <strong>Tip:</strong> sleep een gezet punt om het te verfijnen — de meting update meteen.
+            </div>
+          </aside>
+        </div>
+
+        <div id="preop-result" class="result-panel hidden" style="margin-top: 20px;"></div>
+      </div>
+
+      <!-- Intra-op tab -->
+      <div id="tab-intraop" class="tab-content">
+        <p style="font-size: 14px; color: #4a5568; margin-bottom: 16px;">
+          Vul de intra-operatief gemeten hoeken in om de CPAK classificatie te bepalen en te vergelijken met de pre-op meting.
+        </p>
+        <div class="calc-grid">
+          <div class="input-group">
+            <label for="io-mpta">MPTA</label>
+            <div class="description">Medial Proximal Tibial Angle</div>
+            <div class="input-row">
+              <input type="number" id="io-mpta" step="0.1" placeholder="bv. 87">
+              <span class="unit">°</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="io-ldfa">LDFA</label>
+            <div class="description">Lateral Distal Femoral Angle</div>
+            <div class="input-row">
+              <input type="number" id="io-ldfa" step="0.1" placeholder="bv. 87">
+              <span class="unit">°</span>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary" id="io-calc">Bereken &amp; Opslaan</button>
+          <button class="btn btn-secondary" id="io-clear">Wissen</button>
+        </div>
+        <div id="io-result" class="result-panel hidden" style="margin-top: 18px;"></div>
+      </div>
+
+      <!-- Comparison tab -->
+      <div id="tab-compare" class="tab-content">
+        <div id="compare-content"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    Berekening volgens MacDessi SJ et al. Bone Joint J. 2021;103-B(2):329-337
+    &nbsp;·&nbsp; Data lokaal opgeslagen in browser &nbsp;·&nbsp;
+    <span id="case-count-footer">0 cases</span>
+  </footer>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h3 id="modal-title">—</h3>
+    <p id="modal-body">—</p>
+    <div class="actions">
+      <button class="btn btn-secondary" id="modal-cancel">Annuleren</button>
+      <button class="btn btn-danger" id="modal-confirm">Bevestigen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// LOGO
+// ============================================================
+const LOGO_B64 = "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4takfBtjpsfgHxkklxqemJttzouoBMC4twBhoZgAHi42OA68My17DRQB4X+yXZ/En4X/AA68FeCPEHgTT7PT9B0yHTrnV4fEUc/+qiwHEAiBO5lAxu43Z5xU3w//AGXrif8AZt07wvrU39keJNH1S/1XS9TsmEk2k3Ml9czQTxnof3coDofldWdGyCa9uooA8J0H9nzxJo//AAT71b4azNY3HiifwzqekI0cm23mnmWdY2DH7qsXU8jIB55FaXjL4Aat8U/HvhFdUvr/AEfw94J0sXFpJpl6IrmfVZFMLOeDhYoBIoPc3Tf3a9kooA+afif+yp4qtfBnxW8NeG7y41zSfiDoq3MUuragGnh1dSIXy20fu5YFg5x8rQHP3q9Ab4kfFq80bUmi+GOi2d/bW4ms47jxSksd7IJY90BKwgxlojIVc5UMqgjBJHq1FAHjPwT+HniO8+Oms+PtY8L2PgNNU0eLTrnSre/jvJdUuVlMn2udolEeUU+WhyzkO2doCivZqKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z";
+if (LOGO_B64 !== ("__LOGO_" + "BASE64__")) {
+  document.getElementById('logo').src = "data:image/jpeg;base64," + LOGO_B64;
+} else {
+  document.getElementById('logo').style.display = 'none';
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const STORAGE_KEY = 'tkp_cases_v1';
+const STEPS = [
+  { name: 'hip',           label: 'Centrum van de femurkop',                    help: 'Het geometrisch centrum van de heupkop.' },
+  { name: 'medial_femur',  label: 'Meest distale punt mediale femurcondyl',     help: 'Onderste punt van de mediale condyl.' },
+  { name: 'lateral_femur', label: 'Meest distale punt laterale femurcondyl',    help: 'Onderste punt van de laterale condyl.' },
+  { name: 'medial_tibia',  label: 'Meest proximale punt mediaal tibiaplateau',  help: 'Bovenste hoek van de mediale tibiaplateau.' },
+  { name: 'lateral_tibia', label: 'Meest proximale punt lateraal tibiaplateau', help: 'Bovenste hoek van de laterale tibiaplateau.' },
+  { name: 'ankle',         label: 'Centrum van het talocrurale gewricht',       help: 'Midden van de tibia op enkelniveau (centrum talus dome).' }
+];
+
+// ============================================================
+// STORAGE LAYER
+// ============================================================
+const DB = {
+  load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch(e) { return []; }
+  },
+  save(cases) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cases));
+    syncToFolder();
+    updateFooter();
+  },
+  get(id) { return DB.load().find(c => c.id === id); },
+  upsert(caseObj) {
+    const cases = DB.load();
+    const idx = cases.findIndex(c => c.id === caseObj.id);
+    caseObj.updatedAt = new Date().toISOString();
+    if (idx >= 0) cases[idx] = caseObj;
+    else cases.push(caseObj);
+    DB.save(cases);
+  },
+  delete(id) {
+    DB.save(DB.load().filter(c => c.id !== id));
+  },
+  newCase() {
+    return {
+      id: 'tkp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      patientRef: '',
+      surgeryDate: new Date().toISOString().slice(0, 10),
+      side: 'right',
+      notes: '',
+      preop: null,
+      intraop: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+};
+
+// ============================================================
+// FOLDER SYNC (File System Access API)
+// ============================================================
+const SYNC = {
+  dirHandle: null,
+  supported: 'showDirectoryPicker' in window,
+  async pickFolder() {
+    if (!this.supported) {
+      alert('Je browser ondersteunt deze functie niet. Gebruik Edge of Chrome (versie 86+), of gebruik Export/Import.');
+      return;
+    }
+    try {
+      this.dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      await this.saveHandle();
+      await this.syncFromFolder();
+      this.updateStatus('Map gekoppeld: ' + this.dirHandle.name, 'synced');
+    } catch(e) {
+      console.error(e);
+      if (e.name !== 'AbortError') alert('Kon map niet koppelen: ' + e.message);
+    }
+  },
+  async saveHandle() {
+    if (!('indexedDB' in window) || !this.dirHandle) return;
+    const db = await this.openIDB();
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(this.dirHandle, 'tkp_folder');
+  },
+  async loadHandle() {
+    if (!('indexedDB' in window) || !this.supported) return null;
+    try {
+      const db = await this.openIDB();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get('tkp_folder');
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+      });
+    } catch(e) { return null; }
+  },
+  openIDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open('tkp_meta', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('handles');
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  },
+  async verifyPermission() {
+    if (!this.dirHandle) return false;
+    const opts = { mode: 'readwrite' };
+    if ((await this.dirHandle.queryPermission(opts)) === 'granted') return true;
+    if ((await this.dirHandle.requestPermission(opts)) === 'granted') return true;
+    return false;
+  },
+  async syncFromFolder() {
+    if (!this.dirHandle || !(await this.verifyPermission())) return;
+    try {
+      const fileHandle = await this.dirHandle.getFileHandle('tkp_data.json', { create: false }).catch(() => null);
+      if (!fileHandle) return;
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (Array.isArray(data)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        updateFooter();
+        render();
+      }
+    } catch(e) {
+      console.error('Sync from folder failed:', e);
+      this.updateStatus('Sync fout: ' + e.message, 'error');
+    }
+  },
+  async syncToFolder() {
+    if (!this.dirHandle) return;
+    if (!(await this.verifyPermission())) {
+      this.updateStatus('Geen permissie meer', 'error');
+      return;
+    }
+    try {
+      const fileHandle = await this.dirHandle.getFileHandle('tkp_data.json', { create: true });
+      const writable = await fileHandle.createWritable();
+      const data = localStorage.getItem(STORAGE_KEY) || '[]';
+      await writable.write(data);
+      await writable.close();
+      this.updateStatus('Gesynchroniseerd: ' + new Date().toLocaleTimeString('nl-BE'), 'synced');
+    } catch(e) {
+      console.error('Sync to folder failed:', e);
+      this.updateStatus('Sync fout', 'error');
+    }
+  },
+  updateStatus(text, cls) {
+    const el = document.getElementById('sync-status');
+    el.textContent = text;
+    el.className = 'sync-status ' + (cls || '');
+  }
+};
+
+let syncDebounce = null;
+function syncToFolder() {
+  if (!SYNC.dirHandle) return;
+  clearTimeout(syncDebounce);
+  syncDebounce = setTimeout(() => SYNC.syncToFolder(), 800);
+}
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportAll() {
+  const data = localStorage.getItem(STORAGE_KEY) || '[]';
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tkp_export_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Geen geldige TKP data');
+      const existing = DB.load();
+      const merged = [...existing];
+      let added = 0, updated = 0;
+      imported.forEach(c => {
+        const idx = merged.findIndex(e => e.id === c.id);
+        if (idx >= 0) { merged[idx] = c; updated++; }
+        else { merged.push(c); added++; }
+      });
+      DB.save(merged);
+      render();
+      alert(`Import gelukt: ${added} nieuwe, ${updated} bijgewerkt.`);
+    } catch(err) {
+      alert('Import mislukt: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// STATE & NAVIGATION
+// ============================================================
+const State = {
+  view: 'dashboard',
+  currentCaseId: null,
+  activeTab: 'preop'
+};
+
+function navigate(view, caseId = null) {
+  State.view = view;
+  if (caseId) State.currentCaseId = caseId;
+  if (view === 'casedetail') State.activeTab = 'preop';
+  render();
+}
+
+function setTab(tab) {
+  State.activeTab = tab;
+  document.querySelectorAll('.case-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+  if (tab === 'compare') renderComparison();
+  if (tab === 'intraop') renderIntraOp();
+  if (tab === 'preop') renderPreOp();
+}
+
+// ============================================================
+// CPAK CLASSIFICATION
+// ============================================================
+function classifyCPAK(mpta, ldfa) {
+  const ahka = mpta - ldfa;
+  const jlo = mpta + ldfa;
+  let ahkaCat, ahkaIdx;
+  if (ahka < -2) { ahkaCat = 'Varus'; ahkaIdx = 0; }
+  else if (ahka > 2) { ahkaCat = 'Valgus'; ahkaIdx = 2; }
+  else { ahkaCat = 'Neutraal'; ahkaIdx = 1; }
+  let jloCat, jloIdx;
+  if (jlo < 177) { jloCat = 'Apex proximaal'; jloIdx = 0; }
+  else if (jlo > 183) { jloCat = 'Apex distaal'; jloIdx = 2; }
+  else { jloCat = 'Neutraal'; jloIdx = 1; }
+  const types = [['I','II','III'],['IV','V','VI'],['VII','VIII','IX']];
+  return { mpta, ldfa, ahka, jlo, ahkaCat, jloCat, type: types[jloIdx][ahkaIdx] };
+}
+
+// ============================================================
+// RENDER: DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('dashboard-date').textContent = '(' + formatDate(today) + ')';
+  const cases = DB.load().filter(c => c.surgeryDate === today)
+    .sort((a, b) => (a.patientRef || '').localeCompare(b.patientRef || ''));
+  const container = document.getElementById('today-cases');
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>Geen TKP's gepland voor vandaag.</p>
+        <button class="btn btn-success" onclick="navigate('newcase')">+ Eerste TKP aanmaken</button>
+      </div>`;
+  } else {
+    container.innerHTML = '<div class="cases-grid">' + cases.map(caseCard).join('') + '</div>';
+  }
+}
+
+function renderArchive() {
+  const cases = DB.load().sort((a, b) => b.surgeryDate.localeCompare(a.surgeryDate));
+  const container = document.getElementById('archive-cases');
+  if (cases.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>Geen TKP\'s in archief.</p></div>';
+    return;
+  }
+  const grouped = {};
+  cases.forEach(c => {
+    if (!grouped[c.surgeryDate]) grouped[c.surgeryDate] = [];
+    grouped[c.surgeryDate].push(c);
+  });
+  container.innerHTML = Object.keys(grouped).sort().reverse().map(date => `
+    <div class="archive-day">
+      <h3>${formatDate(date)} <span style="color: #a0aec0; font-weight: 400;">— ${grouped[date].length} ${grouped[date].length === 1 ? 'TKP' : 'TKP\'s'}</span></h3>
+      <div class="cases-grid">${grouped[date].map(caseCard).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function caseCard(c) {
+  const hasPreop = c.preop && c.preop.mpta != null;
+  const hasIntraop = c.intraop && c.intraop.mpta != null;
+  let statusBadge = '';
+  if (hasPreop && hasIntraop) {
+    const match = c.preop.cpakType === c.intraop.cpakType;
+    statusBadge = `<span class="badge ${match ? 'badge-match' : 'badge-mismatch'}">${match ? '✓ CPAK match' : '⚠ CPAK verschilt'}</span>`;
+  }
+  return `
+    <div class="case-card" onclick="navigate('casedetail', '${c.id}')">
+      <div class="case-ref">${escapeHtml(c.patientRef || '(zonder referentie)')}</div>
+      <div class="case-meta">${formatDate(c.surgeryDate)}</div>
+      <span class="case-side">${c.side === 'right' ? 'Rechterknie' : 'Linkerknie'}</span>
+      <div class="case-status">
+        <span class="badge ${hasPreop ? 'badge-preop' : 'badge-empty'}">${hasPreop ? '✓ Pre-op (' + c.preop.cpakType + ')' : 'Geen pre-op'}</span>
+        <span class="badge ${hasIntraop ? 'badge-intraop' : 'badge-empty'}">${hasIntraop ? '✓ Intra-op (' + c.intraop.cpakType + ')' : 'Geen intra-op'}</span>
+      </div>
+      ${statusBadge ? '<div style="margin-top:8px;">' + statusBadge + '</div>' : ''}
+    </div>
+  `;
+}
+
+// ============================================================
+// RENDER: CASE DETAIL
+// ============================================================
+function renderCaseDetail() {
+  const c = DB.get(State.currentCaseId);
+  if (!c) { navigate('dashboard'); return; }
+  document.getElementById('cd-title').textContent = c.patientRef || '(zonder referentie)';
+  document.getElementById('cd-meta').textContent = formatDate(c.surgeryDate) + ' · ' + (c.side === 'right' ? 'Rechterknie' : 'Linkerknie');
+  renderPreOp();
+  renderIntraOp();
+}
+
+// ============================================================
+// PRE-OP TOOL (canvas annotation)
+// ============================================================
+const PreOp = {
+  image: null,
+  points: {},
+  stepIdx: 0,
+  scale: 1,
+  dragging: null,
+  dragOffset: {x:0, y:0}
+};
+
+function renderPreOp() {
+  const c = DB.get(State.currentCaseId);
+  if (!c) return;
+  const uploadWrap = document.getElementById('preop-upload-wrapper');
+  const workArea = document.getElementById('preop-work-area');
+  const resultEl = document.getElementById('preop-result');
+
+  if (c.preop && c.preop.imageData) {
+    // Load existing
+    PreOp.points = c.preop.landmarks || {};
+    PreOp.stepIdx = STEPS.filter(s => PreOp.points[s.name]).length;
+    const img = new Image();
+    img.onload = () => {
+      PreOp.image = img;
+      uploadWrap.classList.add('hidden');
+      workArea.classList.remove('hidden');
+      initPreOpCanvas();
+      updatePreOpPanel();
+      if (PreOp.stepIdx === STEPS.length) {
+        const r = computePreOp();
+        renderPreOpResult(r);
+      } else {
+        resultEl.classList.add('hidden');
+      }
+    };
+    img.src = c.preop.imageData;
+  } else {
+    PreOp.image = null;
+    PreOp.points = {};
+    PreOp.stepIdx = 0;
+    uploadWrap.classList.remove('hidden');
+    workArea.classList.add('hidden');
+    resultEl.classList.add('hidden');
+  }
+}
+
+async function compressImage(file, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const r = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * r);
+          height = Math.round(height * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadPreOpImage(file) {
+  const dataUrl = await compressImage(file);
+  const c = DB.get(State.currentCaseId);
+  c.preop = c.preop || {};
+  c.preop.imageData = dataUrl;
+  c.preop.landmarks = {};
+  c.preop.mpta = null; c.preop.ldfa = null; c.preop.cpakType = null;
+  DB.upsert(c);
+  renderPreOp();
+}
+
+document.getElementById('preop-file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadPreOpImage(e.target.files[0]);
+});
+const preopUpload = document.getElementById('preop-upload-zone');
+preopUpload.addEventListener('dragover', e => { e.preventDefault(); preopUpload.classList.add('dragover'); });
+preopUpload.addEventListener('dragleave', () => preopUpload.classList.remove('dragover'));
+preopUpload.addEventListener('drop', e => {
+  e.preventDefault();
+  preopUpload.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) loadPreOpImage(e.dataTransfer.files[0]);
+});
+
+document.getElementById('preop-change-image').addEventListener('click', () => {
+  if (!confirm('Andere Rx uploaden? De huidige landmarks worden gewist.')) return;
+  const c = DB.get(State.currentCaseId);
+  c.preop = null;
+  DB.upsert(c);
+  renderPreOp();
+});
+
+document.getElementById('preop-undo').addEventListener('click', () => {
+  if (PreOp.stepIdx > 0) {
+    PreOp.stepIdx--;
+    delete PreOp.points[STEPS[PreOp.stepIdx].name];
+    savePreOpState();
+    drawPreOp();
+    updatePreOpPanel();
+    document.getElementById('preop-result').classList.add('hidden');
+  }
+});
+
+document.getElementById('preop-reset').addEventListener('click', () => {
+  PreOp.points = {};
+  PreOp.stepIdx = 0;
+  savePreOpState();
+  drawPreOp();
+  updatePreOpPanel();
+  document.getElementById('preop-result').classList.add('hidden');
+});
+
+function initPreOpCanvas() {
+  const canvas = document.getElementById('preop-canvas');
+  const wrapper = canvas.parentElement;
+  const maxW = wrapper.clientWidth - 8;
+  const maxH = window.innerHeight * 0.75;
+  const scale = Math.min(maxW / PreOp.image.width, maxH / PreOp.image.height);
+  canvas.width = PreOp.image.width * scale;
+  canvas.height = PreOp.image.height * scale;
+  PreOp.scale = scale;
+  drawPreOp();
+}
+
+window.addEventListener('resize', () => {
+  if (State.view === 'casedetail' && State.activeTab === 'preop' && PreOp.image) initPreOpCanvas();
+});
+
+function drawPreOp() {
+  const canvas = document.getElementById('preop-canvas');
+  const ctx = canvas.getContext('2d');
+  if (!PreOp.image) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(PreOp.image, 0, 0, canvas.width, canvas.height);
+
+  const p = PreOp.points;
+  if (p.hip && p.medial_femur && p.lateral_femur) {
+    const kF = mid(p.medial_femur, p.lateral_femur);
+    drawLine(ctx, p.hip, kF, '#4FC3F7', 2);
+    drawLine(ctx, p.medial_femur, p.lateral_femur, '#FFB74D', 3);
+  }
+  if (p.medial_tibia && p.lateral_tibia && p.ankle) {
+    const kT = mid(p.medial_tibia, p.lateral_tibia);
+    drawLine(ctx, kT, p.ankle, '#4FC3F7', 2);
+    drawLine(ctx, p.medial_tibia, p.lateral_tibia, '#FFB74D', 3);
+  }
+  STEPS.forEach((s, i) => {
+    if (p[s.name]) {
+      drawPoint(ctx, p[s.name], i === PreOp.stepIdx ? '#FFD54F' : '#81C784', i + 1);
+    }
+  });
+}
+
+function drawLine(ctx, a, b, color, w) {
+  ctx.beginPath();
+  ctx.moveTo(a.x * PreOp.scale, a.y * PreOp.scale);
+  ctx.lineTo(b.x * PreOp.scale, b.y * PreOp.scale);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.stroke();
+}
+
+function drawPoint(ctx, p, color, label) {
+  const x = p.x * PreOp.scale, y = p.y * PreOp.scale;
+  ctx.beginPath();
+  ctx.arc(x, y, 7, 0, 2*Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#1a202c';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y);
+  ctx.moveTo(x, y - 12); ctx.lineTo(x, y + 12);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#1a202c';
+  ctx.fillRect(x + 10, y - 18, 14, 14);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText(label, x + 13, y - 7);
+}
+
+document.getElementById('preop-canvas').addEventListener('mousedown', e => {
+  const canvas = e.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+  for (let i = 0; i < STEPS.length; i++) {
+    const n = STEPS[i].name;
+    if (PreOp.points[n]) {
+      const px = PreOp.points[n].x * PreOp.scale, py = PreOp.points[n].y * PreOp.scale;
+      if (Math.hypot(px - cx, py - cy) < 12) {
+        PreOp.dragging = n;
+        PreOp.dragOffset = { x: cx - px, y: cy - py };
+        return;
+      }
+    }
+  }
+  if (PreOp.stepIdx < STEPS.length) {
+    PreOp.points[STEPS[PreOp.stepIdx].name] = { x: cx / PreOp.scale, y: cy / PreOp.scale };
+    PreOp.stepIdx++;
+    savePreOpState();
+    drawPreOp();
+    updatePreOpPanel();
+    if (PreOp.stepIdx === STEPS.length) {
+      const r = computePreOp();
+      renderPreOpResult(r);
+    }
+  }
+});
+
+document.getElementById('preop-canvas').addEventListener('mousemove', e => {
+  if (!PreOp.dragging) return;
+  const canvas = e.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left - PreOp.dragOffset.x;
+  const cy = e.clientY - rect.top - PreOp.dragOffset.y;
+  PreOp.points[PreOp.dragging] = { x: cx / PreOp.scale, y: cy / PreOp.scale };
+  drawPreOp();
+  if (PreOp.stepIdx === STEPS.length) {
+    const r = computePreOp();
+    renderPreOpResult(r);
+  }
+});
+
+document.getElementById('preop-canvas').addEventListener('mouseup', () => {
+  if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
+});
+document.getElementById('preop-canvas').addEventListener('mouseleave', () => {
+  if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
+});
+
+function savePreOpState() {
+  const c = DB.get(State.currentCaseId);
+  if (!c) return;
+  c.preop = c.preop || {};
+  c.preop.landmarks = { ...PreOp.points };
+  if (PreOp.stepIdx === STEPS.length) {
+    const r = computePreOp();
+    c.preop.mpta = r.mpta;
+    c.preop.ldfa = r.ldfa;
+    c.preop.ahka = r.ahka;
+    c.preop.jlo = r.jlo;
+    c.preop.cpakType = r.type;
+    c.preop.cpakDesc = r.ahkaCat + ' / ' + r.jloCat;
+  } else {
+    c.preop.mpta = null; c.preop.ldfa = null; c.preop.cpakType = null;
+  }
+  DB.upsert(c);
+}
+
+function updatePreOpPanel() {
+  const list = document.getElementById('preop-landmark-list');
+  list.innerHTML = STEPS.map((s, i) => {
+    const cls = 'item' + (PreOp.points[s.name] ? ' done' : '') + (i === PreOp.stepIdx ? ' current' : '');
+    return `<div class="${cls}"><span class="dot"></span>${i+1}. ${s.label}</div>`;
+  }).join('');
+  if (PreOp.stepIdx < STEPS.length) {
+    document.getElementById('preop-step-num').textContent = 'Stap ' + (PreOp.stepIdx + 1) + ' / ' + STEPS.length;
+    document.getElementById('preop-step-text').textContent = STEPS[PreOp.stepIdx].label;
+    document.getElementById('preop-step-help').textContent = STEPS[PreOp.stepIdx].help;
+  } else {
+    document.getElementById('preop-step-num').textContent = 'Klaar';
+    document.getElementById('preop-step-text').textContent = 'Alle landmarks gezet';
+    document.getElementById('preop-step-help').textContent = 'Sleep punten om ze te verfijnen.';
+  }
+  document.getElementById('preop-undo').disabled = PreOp.stepIdx === 0;
+}
+
+function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y }; }
+function lenV(v) { return Math.hypot(v.x, v.y); }
+function dotV(a, b) { return a.x*b.x + a.y*b.y; }
+function mid(a, b) { return { x: (a.x+b.x)/2, y: (a.y+b.y)/2 }; }
+function angleBetween(a, b) {
+  const c = dotV(a, b) / (lenV(a) * lenV(b));
+  return Math.acos(Math.max(-1, Math.min(1, c))) * 180 / Math.PI;
+}
+
+function computePreOp() {
+  const p = PreOp.points;
+  const kF = mid(p.medial_femur, p.lateral_femur);
+  const kT = mid(p.medial_tibia, p.lateral_tibia);
+  const femAxis = sub(kF, p.hip);
+  const tibAxis = sub(p.ankle, kT);
+  const femJoint = sub(p.lateral_femur, p.medial_femur);
+  const tibJoint = sub(p.medial_tibia, p.lateral_tibia);
+  const ldfa = angleBetween(femAxis, femJoint);
+  const mpta = angleBetween(tibAxis, tibJoint);
+  return classifyCPAK(mpta, ldfa);
+}
+
+function renderPreOpResult(r) {
+  const el = document.getElementById('preop-result');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div class="result-header">
+      <div class="type-badge">Type ${r.type}</div>
+      <div class="result-title">${r.ahkaCat} / ${r.jloCat}</div>
+    </div>
+    <div class="result-grid">
+      <div class="detail-card"><div class="detail-label">MPTA</div><div class="detail-value">${r.mpta.toFixed(1)}°</div></div>
+      <div class="detail-card"><div class="detail-label">LDFA</div><div class="detail-value">${r.ldfa.toFixed(1)}°</div></div>
+      <div class="detail-card"><div class="detail-label">aHKA</div><div class="detail-value">${r.ahka.toFixed(1)}° <small>(${r.ahkaCat})</small></div></div>
+      <div class="detail-card"><div class="detail-label">JLO</div><div class="detail-value">${r.jlo.toFixed(1)}° <small>(${r.jloCat})</small></div></div>
+    </div>`;
+}
+
+// ============================================================
+// INTRA-OP TOOL
+// ============================================================
+function renderIntraOp() {
+  const c = DB.get(State.currentCaseId);
+  if (!c) return;
+  if (c.intraop) {
+    document.getElementById('io-mpta').value = c.intraop.mpta ?? '';
+    document.getElementById('io-ldfa').value = c.intraop.ldfa ?? '';
+    if (c.intraop.mpta != null && c.intraop.ldfa != null) {
+      const r = classifyCPAK(c.intraop.mpta, c.intraop.ldfa);
+      renderIntraOpResult(r, c);
+    } else {
+      document.getElementById('io-result').classList.add('hidden');
+    }
+  } else {
+    document.getElementById('io-mpta').value = '';
+    document.getElementById('io-ldfa').value = '';
+    document.getElementById('io-result').classList.add('hidden');
+  }
+}
+
+document.getElementById('io-calc').addEventListener('click', () => {
+  const mpta = parseFloat(document.getElementById('io-mpta').value);
+  const ldfa = parseFloat(document.getElementById('io-ldfa').value);
+  if (isNaN(mpta) || isNaN(ldfa)) { alert('Vul beide hoeken correct in.'); return; }
+  const c = DB.get(State.currentCaseId);
+  c.intraop = {
+    mpta, ldfa,
+    measuredAt: new Date().toISOString()
+  };
+  const r = classifyCPAK(mpta, ldfa);
+  c.intraop.ahka = r.ahka;
+  c.intraop.jlo = r.jlo;
+  c.intraop.cpakType = r.type;
+  c.intraop.cpakDesc = r.ahkaCat + ' / ' + r.jloCat;
+  DB.upsert(c);
+  renderIntraOpResult(r, c);
+});
+
+document.getElementById('io-clear').addEventListener('click', () => {
+  if (!confirm('Intra-op meting wissen?')) return;
+  const c = DB.get(State.currentCaseId);
+  c.intraop = null;
+  DB.upsert(c);
+  renderIntraOp();
+});
+
+function renderIntraOpResult(r, c) {
+  const el = document.getElementById('io-result');
+  el.classList.remove('hidden');
+  let compareHTML = '';
+  if (c.preop && c.preop.cpakType) {
+    const match = c.preop.cpakType === r.type;
+    compareHTML = `
+      <div style="margin-top:14px; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid ${match ? '#38a169' : '#dd6b20'};">
+        <div style="font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Vergelijking met pre-op</div>
+        <div style="font-size: 14px; font-weight: 600; margin-top: 4px; color: ${match ? '#22543d' : '#7b341e'};">
+          ${match ? '✓ CPAK match: ' : '⚠ CPAK verschilt: '} Pre-op Type ${c.preop.cpakType} ↔ Intra-op Type ${r.type}
+        </div>
+        <div style="font-size: 12px; color: #4a5568; margin-top: 4px;">
+          ΔMPTA: ${(r.mpta - c.preop.mpta).toFixed(1)}° · ΔLDFA: ${(r.ldfa - c.preop.ldfa).toFixed(1)}°
+        </div>
+      </div>`;
+  }
+  el.innerHTML = `
+    <div class="result-header">
+      <div class="type-badge">Type ${r.type}</div>
+      <div class="result-title">${r.ahkaCat} / ${r.jloCat}</div>
+    </div>
+    <div class="result-grid">
+      <div class="detail-card"><div class="detail-label">MPTA</div><div class="detail-value">${r.mpta.toFixed(1)}°</div></div>
+      <div class="detail-card"><div class="detail-label">LDFA</div><div class="detail-value">${r.ldfa.toFixed(1)}°</div></div>
+      <div class="detail-card"><div class="detail-label">aHKA</div><div class="detail-value">${r.ahka.toFixed(1)}° <small>(${r.ahkaCat})</small></div></div>
+      <div class="detail-card"><div class="detail-label">JLO</div><div class="detail-value">${r.jlo.toFixed(1)}° <small>(${r.jloCat})</small></div></div>
+    </div>
+    ${compareHTML}
+  `;
+}
+
+// ============================================================
+// COMPARISON VIEW
+// ============================================================
+function renderComparison() {
+  const c = DB.get(State.currentCaseId);
+  const el = document.getElementById('compare-content');
+  if (!c) { el.innerHTML = ''; return; }
+  const hasPreop = c.preop && c.preop.mpta != null;
+  const hasIntraop = c.intraop && c.intraop.mpta != null;
+
+  if (!hasPreop && !hasIntraop) {
+    el.innerHTML = '<div class="empty-state"><p>Geen pre-op of intra-op metingen om te vergelijken.</p></div>';
+    return;
+  }
+
+  const preCard = hasPreop ? cardHtml('Pre-operatieve meting (Rx)', c.preop, 'preop') : emptyCard('Geen pre-op meting');
+  const ioCard = hasIntraop ? cardHtml('Intra-operatieve meting', c.intraop, 'intraop') : emptyCard('Geen intra-op meting');
+
+  let diffHtml = '';
+  if (hasPreop && hasIntraop) {
+    const dMpta = c.intraop.mpta - c.preop.mpta;
+    const dLdfa = c.intraop.ldfa - c.preop.ldfa;
+    const dAhka = c.intraop.ahka - c.preop.ahka;
+    const dJlo = c.intraop.jlo - c.preop.jlo;
+    const match = c.preop.cpakType === c.intraop.cpakType;
+    diffHtml = `
+      <div class="diff-summary">
+        <div class="diff-title">Verschillen</div>
+        <div class="diff-row header">
+          <div></div><div>Pre-op</div><div>Intra-op</div><div>Δ</div>
+        </div>
+        ${diffRow('MPTA', c.preop.mpta.toFixed(1) + '°', c.intraop.mpta.toFixed(1) + '°', dMpta)}
+        ${diffRow('LDFA', c.preop.ldfa.toFixed(1) + '°', c.intraop.ldfa.toFixed(1) + '°', dLdfa)}
+        ${diffRow('aHKA', c.preop.ahka.toFixed(1) + '°', c.intraop.ahka.toFixed(1) + '°', dAhka)}
+        ${diffRow('JLO', c.preop.jlo.toFixed(1) + '°', c.intraop.jlo.toFixed(1) + '°', dJlo)}
+        <div class="diff-row" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+          <div style="font-weight: 700;">CPAK</div>
+          <div><strong>Type ${c.preop.cpakType}</strong> <small style="color: #718096;">${c.preop.cpakDesc}</small></div>
+          <div><strong>Type ${c.intraop.cpakType}</strong> <small style="color: #718096;">${c.intraop.cpakDesc}</small></div>
+          <div class="diff ${match ? 'ok' : 'warn'}">${match ? '✓ match' : '⚠ verschilt'}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = `
+    <div class="comp-grid">${preCard}${ioCard}</div>
+    ${diffHtml}
+    <div class="matrix-section">
+      <h3>CPAK Matrix</h3>
+      ${matrixHtml(hasPreop ? c.preop.cpakType : null, hasIntraop ? c.intraop.cpakType : null)}
+      <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: #4a5568;">
+        <span><span style="display:inline-block; width:12px; height:12px; background:#c6f6d5; border:2px solid #38a169; vertical-align: middle;"></span> Pre-op</span>
+        <span><span style="display:inline-block; width:12px; height:12px; background:#feebc8; border:2px solid #dd6b20; vertical-align: middle;"></span> Intra-op</span>
+        <span><span style="display:inline-block; width:12px; height:12px; background:#bee3f8; border:2px solid #2b6cb0; vertical-align: middle;"></span> Beide</span>
+      </div>
+    </div>
+  `;
+}
+
+function cardHtml(title, m, cls) {
+  return `
+    <div class="comp-card ${cls}">
+      <div class="comp-title">${title}</div>
+      <div class="comp-row"><span class="label">MPTA</span><span class="value">${m.mpta.toFixed(1)}°</span></div>
+      <div class="comp-row"><span class="label">LDFA</span><span class="value">${m.ldfa.toFixed(1)}°</span></div>
+      <div class="comp-row"><span class="label">aHKA</span><span class="value">${m.ahka.toFixed(1)}°</span></div>
+      <div class="comp-row"><span class="label">JLO</span><span class="value">${m.jlo.toFixed(1)}°</span></div>
+      <div class="comp-row"><span class="label">CPAK</span><span class="value">Type ${m.cpakType} (${m.cpakDesc})</span></div>
+    </div>`;
+}
+
+function emptyCard(txt) {
+  return `<div class="comp-card"><div class="comp-title text-muted">${txt}</div></div>`;
+}
+
+function diffRow(label, pre, io, delta) {
+  const cls = Math.abs(delta) <= 2 ? 'ok' : 'warn';
+  return `<div class="diff-row">
+    <div style="font-weight: 600; color: #4a5568;">${label}</div>
+    <div>${pre}</div>
+    <div>${io}</div>
+    <div class="diff ${cls}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}°</div>
+  </div>`;
+}
+
+function matrixHtml(preType, ioType) {
+  const types = [['I','II','III'],['IV','V','VI'],['VII','VIII','IX']];
+  const rowLabels = ['Apex prox<br><small>JLO &lt; 177°</small>', 'Neutraal<br><small>177°-183°</small>', 'Apex dist<br><small>JLO &gt; 183°</small>'];
+  const colLabels = ['Varus<br><small>aHKA &lt; -2°</small>', 'Neutraal<br><small>-2° tot 2°</small>', 'Valgus<br><small>aHKA &gt; 2°</small>'];
+  let html = '<div class="matrix">';
+  html += '<div class="matrix-cell matrix-header"></div>';
+  colLabels.forEach(l => html += `<div class="matrix-cell matrix-header">${l}</div>`);
+  for (let r = 0; r < 3; r++) {
+    html += `<div class="matrix-row-label">${rowLabels[r]}</div>`;
+    for (let c = 0; c < 3; c++) {
+      const t = types[r][c];
+      let cls = '';
+      const isPre = t === preType, isIo = t === ioType;
+      if (isPre && isIo) cls = 'both';
+      else if (isPre) cls = 'preop';
+      else if (isIo) cls = 'intraop';
+      const marker = isPre && isIo ? 'P+I' : (isPre ? 'P' : (isIo ? 'I' : ''));
+      html += `<div class="matrix-cell ${cls}">${marker ? `<span class="marker">${marker}</span>` : ''}<span class="matrix-type">${t}</span></div>`;
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+// ============================================================
+// NEW CASE
+// ============================================================
+document.getElementById('new-case-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const c = DB.newCase();
+  c.patientRef = document.getElementById('nc-ref').value.trim();
+  c.surgeryDate = document.getElementById('nc-date').value || new Date().toISOString().slice(0,10);
+  c.side = document.getElementById('nc-side').value;
+  c.notes = document.getElementById('nc-notes').value;
+  DB.upsert(c);
+  document.getElementById('new-case-form').reset();
+  document.getElementById('nc-date').value = new Date().toISOString().slice(0,10);
+  navigate('casedetail', c.id);
+});
+
+document.getElementById('cd-delete').addEventListener('click', () => {
+  showModal('TKP verwijderen', 'Weet je zeker dat je deze TKP wil verwijderen? Dit kan niet ongedaan worden gemaakt.', () => {
+    DB.delete(State.currentCaseId);
+    navigate('dashboard');
+  });
+});
+
+// ============================================================
+// MODAL
+// ============================================================
+let modalConfirmFn = null;
+function showModal(title, body, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  modalConfirmFn = onConfirm;
+  document.getElementById('modal-backdrop').classList.add('active');
+}
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('modal-backdrop').classList.remove('active');
+});
+document.getElementById('modal-confirm').addEventListener('click', () => {
+  if (modalConfirmFn) modalConfirmFn();
+  document.getElementById('modal-backdrop').classList.remove('active');
+});
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+document.querySelectorAll('nav.top-nav button[data-view]').forEach(b => {
+  b.addEventListener('click', () => navigate(b.dataset.view));
+});
+document.querySelectorAll('.case-tabs button[data-tab]').forEach(b => {
+  b.addEventListener('click', () => setTab(b.dataset.tab));
+});
+document.getElementById('btn-sync-folder').addEventListener('click', () => SYNC.pickFolder());
+document.getElementById('btn-export').addEventListener('click', exportAll);
+document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', e => {
+  if (e.target.files[0]) importFromFile(e.target.files[0]);
+  e.target.value = '';
+});
+
+// ============================================================
+// UTILS
+// ============================================================
+function formatDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function updateFooter() {
+  document.getElementById('case-count-footer').textContent = DB.load().length + ' cases';
+}
+
+// ============================================================
+// MAIN RENDER
+// ============================================================
+function render() {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav.top-nav button[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === State.view));
+  document.getElementById('view-' + State.view).classList.add('active');
+  switch(State.view) {
+    case 'dashboard': renderDashboard(); break;
+    case 'archive': renderArchive(); break;
+    case 'newcase':
+      document.getElementById('nc-date').value = new Date().toISOString().slice(0,10);
+      break;
+    case 'casedetail': renderCaseDetail(); break;
+  }
+  updateFooter();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+(async function init() {
+  // Try restore folder handle
+  if (SYNC.supported) {
+    SYNC.dirHandle = await SYNC.loadHandle();
+    if (SYNC.dirHandle) {
+      const ok = await SYNC.verifyPermission();
+      if (ok) {
+        await SYNC.syncFromFolder();
+        SYNC.updateStatus('Map: ' + SYNC.dirHandle.name, 'synced');
+      } else {
+        SYNC.updateStatus('Map permissie nodig — klik "Map koppelen"', 'error');
+      }
+    } else {
+      SYNC.updateStatus('Lokaal (geen folder sync)');
+    }
+  } else {
+    SYNC.updateStatus('Browser ondersteunt folder-sync niet');
+  }
+  render();
+})();
+</script>
+</body>
+</html>

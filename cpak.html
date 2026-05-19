@@ -25,15 +25,36 @@
     background: linear-gradient(135deg, #2c5282 0%, #2b6cb0 100%);
     color: white;
     padding: 30px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
   }
-  header h1 {
+  header .title-block h1 {
     font-size: 28px;
     margin-bottom: 6px;
     font-weight: 600;
   }
-  header p {
+  header .title-block p {
     font-size: 14px;
     opacity: 0.9;
+  }
+  .logo-block {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-block svg {
+    display: block;
+  }
+  @media (max-width: 600px) {
+    header { flex-direction: column; align-items: flex-start; }
+    .logo-block { align-self: center; }
   }
   .content {
     padding: 30px 40px;
@@ -295,8 +316,13 @@
 <body>
   <div class="container">
     <header>
-      <h1>CPAK Classificatie</h1>
-      <p>Coronal Plane Alignment of the Knee — MacDessi et al. (2021)</p>
+      <div class="title-block">
+        <h1>CPAK Classificatie</h1>
+        <p>Coronal Plane Alignment of the Knee — MacDessi et al. (2021)</p>
+      </div>
+      <div class="logo-block">
+        <img src="data:image/jpeg;base64,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4takfBtjpsfgHxkklxqemJttzouoBMC4twBhoZgAHi42OA68My17DRQB4X+yXZ/En4X/AA68FeCPEHgTT7PT9B0yHTrnV4fEUc/+qiwHEAiBO5lAxu43Z5xU3w//AGXrif8AZt07wvrU39keJNH1S/1XS9TsmEk2k3Ml9czQTxnof3coDofldWdGyCa9uooA8J0H9nzxJo//AAT71b4azNY3HiifwzqekI0cm23mnmWdY2DH7qsXU8jIB55FaXjL4Aat8U/HvhFdUvr/AEfw94J0sXFpJpl6IrmfVZFMLOeDhYoBIoPc3Tf3a9kooA+afif+yp4qtfBnxW8NeG7y41zSfiDoq3MUuragGnh1dSIXy20fu5YFg5x8rQHP3q9Ab4kfFq80bUmi+GOi2d/bW4ms47jxSksd7IJY90BKwgxlojIVc5UMqgjBJHq1FAHjPwT+HniO8+Oms+PtY8L2PgNNU0eLTrnSre/jvJdUuVlMn2udolEeUU+WhyzkO2doCivZqKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" alt="Orthopedie Herentals" style="height: 55px; display: block;">
+      </div>
     </header>
 
     <div class="content">
@@ -360,20 +386,20 @@
           <div class="matrix-cell matrix-header">Neutraal<br><small>-2° tot 2°</small></div>
           <div class="matrix-cell matrix-header">Valgus<br><small>aHKA &gt; 2°</small></div>
 
-          <div class="matrix-row-label">Apex distaal<br><small>JLO &gt; 183°</small></div>
-          <div class="matrix-cell" data-type="I"><span class="matrix-type">I</span>Varus / Apex distaal</div>
-          <div class="matrix-cell" data-type="II"><span class="matrix-type">II</span>Neutraal / Apex distaal</div>
-          <div class="matrix-cell" data-type="III"><span class="matrix-type">III</span>Valgus / Apex distaal</div>
+          <div class="matrix-row-label">Apex proximaal<br><small>JLO &lt; 177°</small></div>
+          <div class="matrix-cell" data-type="I"><span class="matrix-type">I</span>Varus / Apex proximaal</div>
+          <div class="matrix-cell" data-type="II"><span class="matrix-type">II</span>Neutraal / Apex proximaal</div>
+          <div class="matrix-cell" data-type="III"><span class="matrix-type">III</span>Valgus / Apex proximaal</div>
 
           <div class="matrix-row-label">Neutraal<br><small>177°-183°</small></div>
           <div class="matrix-cell" data-type="IV"><span class="matrix-type">IV</span>Varus / Neutraal</div>
           <div class="matrix-cell" data-type="V"><span class="matrix-type">V</span>Neutraal / Neutraal</div>
           <div class="matrix-cell" data-type="VI"><span class="matrix-type">VI</span>Valgus / Neutraal</div>
 
-          <div class="matrix-row-label">Apex proximaal<br><small>JLO &lt; 177°</small></div>
-          <div class="matrix-cell" data-type="VII"><span class="matrix-type">VII</span>Varus / Apex proximaal</div>
-          <div class="matrix-cell" data-type="VIII"><span class="matrix-type">VIII</span>Neutraal / Apex proximaal</div>
-          <div class="matrix-cell" data-type="IX"><span class="matrix-type">IX</span>Valgus / Apex proximaal</div>
+          <div class="matrix-row-label">Apex distaal<br><small>JLO &gt; 183°</small></div>
+          <div class="matrix-cell" data-type="VII"><span class="matrix-type">VII</span>Varus / Apex distaal</div>
+          <div class="matrix-cell" data-type="VIII"><span class="matrix-type">VIII</span>Neutraal / Apex distaal</div>
+          <div class="matrix-cell" data-type="IX"><span class="matrix-type">IX</span>Valgus / Apex distaal</div>
         </div>
       </div>
 
@@ -443,8 +469,8 @@ function bereken() {
 
   // JLO categorie
   let jloCat, jloIdx;
-  if (jlo > 183) { jloCat = 'Apex distaal'; jloIdx = 0; }
-  else if (jlo < 177) { jloCat = 'Apex proximaal'; jloIdx = 2; }
+  if (jlo < 177) { jloCat = 'Apex proximaal'; jloIdx = 0; }
+  else if (jlo > 183) { jloCat = 'Apex distaal'; jloIdx = 2; }
   else { jloCat = 'Neutraal'; jloIdx = 1; }
 
   // Type bepaling

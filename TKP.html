@@ -303,6 +303,40 @@
   .detail-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
   .detail-value { font-size: 16px; font-weight: 600; color: #2d3748; }
   .detail-value small { font-size: 11px; color: #4a5568; font-weight: 500; margin-left: 4px; }
+  /* Red highlight when value deviates >1° from comparison */
+  .detail-card.deviated {
+    border-left-color: #c53030;
+    background: #fff5f5;
+  }
+  .detail-card.deviated .detail-value { color: #c53030; }
+  .detail-card.deviated .detail-label { color: #c53030; }
+  .type-badge.mismatch { background: #c53030; }
+  .result-title.mismatch, .subpanel-desc.mismatch { color: #c53030; }
+  .badge-mismatch-strong { color: #c53030; font-weight: 700; }
+  /* Stacked result panels (intra-op + pre-op together) */
+  .result-subpanel {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    border-left: 4px solid #2b6cb0;
+  }
+  .result-subpanel.preop-stack { border-left-color: #38a169; }
+  .result-subpanel.intra-stack { border-left-color: #dd6b20; }
+  .result-subpanel .subpanel-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #4a5568;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .result-subpanel .subpanel-title .type-badge { font-size: 15px; padding: 4px 12px; }
+  .result-subpanel .subpanel-desc { font-size: 13px; color: #4a5568; font-weight: 600; }
 
   /* CPAK matrix */
   .matrix-section { margin-top: 20px; }
@@ -848,7 +882,7 @@ function classifyCPAK(mpta, ldfa) {
   if (jlo < 177) { jloCat = 'Apex proximaal'; jloIdx = 0; }
   else if (jlo > 183) { jloCat = 'Apex distaal'; jloIdx = 2; }
   else { jloCat = 'Neutraal'; jloIdx = 1; }
-  const types = [['I','II','III'],['IV','V','VI'],['VII','VIII','IX']];
+  const types = [['1','2','3'],['4','5','6'],['7','8','9']];
   return { mpta, ldfa, ahka, jlo, ahkaCat, jloCat, type: types[jloIdx][ahkaIdx] };
 }
 
@@ -896,19 +930,24 @@ function renderArchive() {
 function caseCard(c) {
   const hasPreop = c.preop && c.preop.mpta != null;
   const hasIntraop = c.intraop && c.intraop.mpta != null;
+  const bothPresent = hasPreop && hasIntraop;
+  const cpakMatch = bothPresent ? (c.preop.cpakType === c.intraop.cpakType) : true;
+  const mismatch = bothPresent && !cpakMatch;
   let statusBadge = '';
-  if (hasPreop && hasIntraop) {
-    const match = c.preop.cpakType === c.intraop.cpakType;
-    statusBadge = `<span class="badge ${match ? 'badge-match' : 'badge-mismatch'}">${match ? '✓ CPAK match' : '⚠ CPAK verschilt'}</span>`;
+  if (bothPresent) {
+    statusBadge = `<span class="badge ${cpakMatch ? 'badge-match' : 'badge-mismatch'}">${cpakMatch ? '✓ CPAK match' : '⚠ CPAK verschilt'}</span>`;
   }
+  // When mismatch: type numbers in badges shown red
+  const preCls  = hasPreop  ? (mismatch ? 'badge-mismatch' : 'badge-preop')  : 'badge-empty';
+  const intraCls = hasIntraop ? (mismatch ? 'badge-mismatch' : 'badge-intraop') : 'badge-empty';
   return `
     <div class="case-card" onclick="navigate('casedetail', '${c.id}')">
       <div class="case-ref">${escapeHtml(c.patientRef || '(zonder referentie)')}</div>
       <div class="case-meta">${formatDate(c.surgeryDate)}</div>
       <span class="case-side">${c.side === 'right' ? 'Rechterknie' : 'Linkerknie'}</span>
       <div class="case-status">
-        <span class="badge ${hasPreop ? 'badge-preop' : 'badge-empty'}">${hasPreop ? '✓ Pre-op (' + c.preop.cpakType + ')' : 'Geen pre-op'}</span>
-        <span class="badge ${hasIntraop ? 'badge-intraop' : 'badge-empty'}">${hasIntraop ? '✓ Intra-op (' + c.intraop.cpakType + ')' : 'Geen intra-op'}</span>
+        <span class="badge ${preCls}">${hasPreop ? '✓ Pre-op (' + c.preop.cpakType + ')' : 'Geen pre-op'}</span>
+        <span class="badge ${intraCls}">${hasIntraop ? '✓ Intra-op (' + c.intraop.cpakType + ')' : 'Geen intra-op'}</span>
       </div>
       ${statusBadge ? '<div style="margin-top:8px;">' + statusBadge + '</div>' : ''}
     </div>
@@ -1108,13 +1147,13 @@ function drawPreOp() {
   const p = PreOp.points;
   if (p.hip && p.medial_femur && p.lateral_femur) {
     const kF = mid(p.medial_femur, p.lateral_femur);
-    drawLine(ctx, p.hip, kF, '#4FC3F7', 2);
-    drawLine(ctx, p.medial_femur, p.lateral_femur, '#FFB74D', 3);
+    drawLine(ctx, p.hip, kF, '#4FC3F7', 1.2);
+    drawLine(ctx, p.medial_femur, p.lateral_femur, '#FFB74D', 1.5);
   }
   if (p.medial_tibia && p.lateral_tibia && p.ankle) {
     const kT = mid(p.medial_tibia, p.lateral_tibia);
-    drawLine(ctx, kT, p.ankle, '#4FC3F7', 2);
-    drawLine(ctx, p.medial_tibia, p.lateral_tibia, '#FFB74D', 3);
+    drawLine(ctx, kT, p.ankle, '#4FC3F7', 1.2);
+    drawLine(ctx, p.medial_tibia, p.lateral_tibia, '#FFB74D', 1.5);
   }
   STEPS.forEach((s, i) => {
     if (p[s.name]) {
@@ -1141,28 +1180,27 @@ function drawLine(ctx, a, b, color, w) {
 
 function drawPoint(ctx, p, color, label) {
   const c = imgToCanvas(p);
-  const r = 4;          // smaller circle
-  const arm = 7;        // shorter crosshair arms
+  // Thin crosshair for precise positioning
+  const arm = 10;
   ctx.beginPath();
-  ctx.arc(c.x, c.y, r, 0, 2*Math.PI);
+  ctx.moveTo(c.x - arm, c.y); ctx.lineTo(c.x - 2, c.y);
+  ctx.moveTo(c.x + 2, c.y);   ctx.lineTo(c.x + arm, c.y);
+  ctx.moveTo(c.x, c.y - arm); ctx.lineTo(c.x, c.y - 2);
+  ctx.moveTo(c.x, c.y + 2);   ctx.lineTo(c.x, c.y + arm);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+  // tiny center dot
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, 1.8, 0, 2*Math.PI);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = '#1a202c';
-  ctx.stroke();
-  // crosshair
-  ctx.beginPath();
-  ctx.moveTo(c.x - arm, c.y); ctx.lineTo(c.x + arm, c.y);
-  ctx.moveTo(c.x, c.y - arm); ctx.lineTo(c.x, c.y + arm);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  // small label
-  ctx.fillStyle = 'rgba(26, 32, 44, 0.85)';
-  ctx.fillRect(c.x + 6, c.y - 14, 12, 12);
+  // tiny number label, offset
+  ctx.fillStyle = 'rgba(26, 32, 44, 0.8)';
+  ctx.fillRect(c.x + 8, c.y - 14, 11, 11);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 9px sans-serif';
-  ctx.fillText(label, c.x + 9, c.y - 5);
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText(label, c.x + 10.5, c.y - 6);
 }
 
 function drawAngleOverlay(ctx) {
@@ -1456,32 +1494,65 @@ document.getElementById('io-clear').addEventListener('click', () => {
 function renderIntraOpResult(r, c) {
   const el = document.getElementById('io-result');
   el.classList.remove('hidden');
-  let compareHTML = '';
-  if (c.preop && c.preop.cpakType) {
-    const match = c.preop.cpakType === r.type;
-    compareHTML = `
-      <div style="margin-top:14px; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid ${match ? '#38a169' : '#dd6b20'};">
-        <div style="font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Vergelijking met pre-op</div>
-        <div style="font-size: 14px; font-weight: 600; margin-top: 4px; color: ${match ? '#22543d' : '#7b341e'};">
-          ${match ? '✓ CPAK match: ' : '⚠ CPAK verschilt: '} Pre-op Type ${c.preop.cpakType} ↔ Intra-op Type ${r.type}
-        </div>
-        <div style="font-size: 12px; color: #4a5568; margin-top: 4px;">
-          ΔMPTA: ${(r.mpta - c.preop.mpta).toFixed(1)}° · ΔLDFA: ${(r.ldfa - c.preop.ldfa).toFixed(1)}°
-        </div>
-      </div>`;
-  }
-  el.innerHTML = `
-    <div class="result-header">
-      <div class="type-badge">Type ${r.type}</div>
-      <div class="result-title">${r.ahkaCat} / ${r.jloCat}</div>
-    </div>
+
+  const hasPreop = c.preop && c.preop.mpta != null;
+  const cpakMatch = hasPreop ? (c.preop.cpakType === r.type) : true;
+  const typeClass = (hasPreop && !cpakMatch) ? ' mismatch' : '';
+
+  // Build intra-op cards (no deviation marking here — intra-op is the reference)
+  const ioGrid = `
     <div class="result-grid">
       <div class="detail-card"><div class="detail-label">MPTA</div><div class="detail-value">${r.mpta.toFixed(1)}°</div></div>
       <div class="detail-card"><div class="detail-label">LDFA</div><div class="detail-value">${r.ldfa.toFixed(1)}°</div></div>
       <div class="detail-card"><div class="detail-label">aHKA</div><div class="detail-value">${r.ahka.toFixed(1)}° <small>(${r.ahkaCat})</small></div></div>
       <div class="detail-card"><div class="detail-label">JLO</div><div class="detail-value">${r.jlo.toFixed(1)}° <small>(${r.jloCat})</small></div></div>
+    </div>`;
+
+  // Build pre-op (X-ray) cards with red highlighting for >1° deviation
+  let preopBlock = '';
+  if (hasPreop) {
+    const p = c.preop;
+    const dMpta = p.mpta - r.mpta;
+    const dLdfa = p.ldfa - r.ldfa;
+    const dAhka = p.ahka - r.ahka;
+    const dJlo  = p.jlo  - r.jlo;
+    const card = (label, val, cat, delta) => {
+      const dev = Math.abs(delta) > 1;
+      const sign = delta >= 0 ? '+' : '';
+      return `<div class="detail-card${dev ? ' deviated' : ''}">
+        <div class="detail-label">${label}</div>
+        <div class="detail-value">${val.toFixed(1)}°${cat ? ' <small>('+cat+')</small>' : ''} <small style="margin-left:6px;">Δ ${sign}${delta.toFixed(1)}°</small></div>
+      </div>`;
+    };
+    preopBlock = `
+      <div class="result-subpanel preop-stack">
+        <div class="subpanel-title">
+          <span>X-ray (Pre-op)</span>
+          <span class="type-badge${typeClass}">Type ${p.cpakType}</span>
+          <span class="subpanel-desc${typeClass ? ' mismatch' : ''}">${p.cpakDesc || ''}</span>
+        </div>
+        <div class="result-grid">
+          ${card('MPTA', p.mpta, null, dMpta)}
+          ${card('LDFA', p.ldfa, null, dLdfa)}
+          ${card('aHKA', p.ahka, p.cpakDesc ? p.cpakDesc.split(' / ')[0] : null, dAhka)}
+          ${card('JLO',  p.jlo,  p.cpakDesc ? p.cpakDesc.split(' / ')[1] : null, dJlo)}
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="result-subpanel intra-stack">
+      <div class="subpanel-title">
+        <span>Intra-op meting</span>
+        <span class="type-badge${typeClass}">Type ${r.type}</span>
+        <span class="subpanel-desc${typeClass ? ' mismatch' : ''}">${r.ahkaCat} / ${r.jloCat}</span>
+      </div>
+      ${ioGrid}
     </div>
-    ${compareHTML}
+    ${preopBlock}
+    ${hasPreop ? `<div style="margin-top: 14px; padding: 10px 14px; background: ${cpakMatch ? '#f0fff4' : '#fff5f5'}; border-radius: 8px; border-left: 4px solid ${cpakMatch ? '#38a169' : '#c53030'}; font-size: 13px; color: ${cpakMatch ? '#22543d' : '#c53030'}; font-weight: 600;">
+      ${cpakMatch ? '✓ CPAK match: Pre-op Type ' + c.preop.cpakType + ' = Intra-op Type ' + r.type : '⚠ CPAK verschilt: Pre-op Type ' + c.preop.cpakType + ' ≠ Intra-op Type ' + r.type}
+    </div>` : ''}
   `;
 }
 
@@ -1500,8 +1571,9 @@ function renderComparison() {
     return;
   }
 
-  const preCard = hasPreop ? cardHtml('Pre-operatieve meting (Rx)', c.preop, 'preop') : emptyCard('Geen pre-op meting');
-  const ioCard = hasIntraop ? cardHtml('Intra-operatieve meting', c.intraop, 'intraop') : emptyCard('Geen intra-op meting');
+  const cpakMatch = (hasPreop && hasIntraop) ? (c.preop.cpakType === c.intraop.cpakType) : true;
+  const preCard = hasPreop ? cardHtml('Pre-operatieve meting (Rx)', c.preop, 'preop', !cpakMatch) : emptyCard('Geen pre-op meting');
+  const ioCard = hasIntraop ? cardHtml('Intra-operatieve meting', c.intraop, 'intraop', !cpakMatch) : emptyCard('Geen intra-op meting');
 
   let diffHtml = '';
   if (hasPreop && hasIntraop) {
@@ -1522,9 +1594,9 @@ function renderComparison() {
         ${diffRow('JLO', c.preop.jlo.toFixed(1) + '°', c.intraop.jlo.toFixed(1) + '°', dJlo)}
         <div class="diff-row" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
           <div style="font-weight: 700;">CPAK</div>
-          <div><strong>Type ${c.preop.cpakType}</strong> <small style="color: #718096;">${c.preop.cpakDesc}</small></div>
-          <div><strong>Type ${c.intraop.cpakType}</strong> <small style="color: #718096;">${c.intraop.cpakDesc}</small></div>
-          <div class="diff ${match ? 'ok' : 'warn'}">${match ? '✓ match' : '⚠ verschilt'}</div>
+          <div><strong${match ? '' : ' style="color:#c53030;"'}>Type ${c.preop.cpakType}</strong> <small style="color: #718096;">${c.preop.cpakDesc}</small></div>
+          <div><strong${match ? '' : ' style="color:#c53030;"'}>Type ${c.intraop.cpakType}</strong> <small style="color: #718096;">${c.intraop.cpakDesc}</small></div>
+          <div class="diff ${match ? 'ok' : 'warn'}" ${match ? '' : 'style="color:#c53030;font-weight:700;"'}>${match ? '✓ match' : '⚠ verschilt'}</div>
         </div>
       </div>
     `;
@@ -1545,7 +1617,8 @@ function renderComparison() {
   `;
 }
 
-function cardHtml(title, m, cls) {
+function cardHtml(title, m, cls, mismatch) {
+  const cpakStyle = mismatch ? ' style="color:#c53030;font-weight:700;"' : '';
   return `
     <div class="comp-card ${cls}">
       <div class="comp-title">${title}</div>
@@ -1553,7 +1626,7 @@ function cardHtml(title, m, cls) {
       <div class="comp-row"><span class="label">LDFA</span><span class="value">${m.ldfa.toFixed(1)}°</span></div>
       <div class="comp-row"><span class="label">aHKA</span><span class="value">${m.ahka.toFixed(1)}°</span></div>
       <div class="comp-row"><span class="label">JLO</span><span class="value">${m.jlo.toFixed(1)}°</span></div>
-      <div class="comp-row"><span class="label">CPAK</span><span class="value">Type ${m.cpakType} (${m.cpakDesc})</span></div>
+      <div class="comp-row"><span class="label">CPAK</span><span class="value"${cpakStyle}>Type ${m.cpakType} (${m.cpakDesc})</span></div>
     </div>`;
 }
 
@@ -1572,7 +1645,7 @@ function diffRow(label, pre, io, delta) {
 }
 
 function matrixHtml(preType, ioType) {
-  const types = [['I','II','III'],['IV','V','VI'],['VII','VIII','IX']];
+  const types = [['1','2','3'],['4','5','6'],['7','8','9']];
   const rowLabels = ['Apex prox<br><small>JLO &lt; 177°</small>', 'Neutraal<br><small>177°-183°</small>', 'Apex dist<br><small>JLO &gt; 183°</small>'];
   const colLabels = ['Varus<br><small>aHKA &lt; -2°</small>', 'Neutraal<br><small>-2° tot 2°</small>', 'Valgus<br><small>aHKA &gt; 2°</small>'];
   let html = '<div class="matrix">';

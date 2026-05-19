@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPAK Classificatie - Knie Alignment Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #2d3748;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  header {
+    background: linear-gradient(135deg, #2c5282 0%, #2b6cb0 100%);
+    color: white;
+    padding: 30px 40px;
+  }
+  header h1 {
+    font-size: 28px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  header p {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+  .content {
+    padding: 30px 40px;
+  }
+  .input-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  .input-group {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .input-group:focus-within {
+    border-color: #2b6cb0;
+  }
+  .input-group label {
+    display: block;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+    font-size: 15px;
+  }
+  .input-group .description {
+    font-size: 12px;
+    color: #718096;
+    margin-bottom: 10px;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-group input {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 18px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    background: white;
+    color: #2d3748;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus {
+    outline: none;
+    border-color: #2b6cb0;
+  }
+  .unit {
+    font-size: 16px;
+    color: #718096;
+    font-weight: 500;
+  }
+  .normal-range {
+    font-size: 11px;
+    color: #a0aec0;
+    margin-top: 6px;
+  }
+  .button-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+  button {
+    flex: 1;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #2b6cb0;
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #2c5282;
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: #e2e8f0;
+    color: #2d3748;
+  }
+  .btn-secondary:hover {
+    background: #cbd5e0;
+  }
+  .result {
+    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+    border: 2px solid #2b6cb0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 25px;
+    display: none;
+  }
+  .result.show { display: block; }
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .type-badge {
+    background: #2b6cb0;
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+  }
+  .result-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a365d;
+  }
+  .result-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .detail-card {
+    background: white;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border-left: 4px solid #2b6cb0;
+  }
+  .detail-label {
+    font-size: 11px;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .detail-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+  }
+  .detail-value small {
+    font-size: 13px;
+    color: #4a5568;
+    font-weight: 500;
+    margin-left: 6px;
+  }
+  .matrix-section {
+    margin-top: 30px;
+  }
+  .matrix-section h2 {
+    font-size: 18px;
+    color: #2d3748;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: auto repeat(3, 1fr);
+    gap: 4px;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 8px;
+  }
+  .matrix-cell {
+    background: white;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 13px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .matrix-header {
+    background: #2c5282;
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .matrix-row-label {
+    background: #2c5282;
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 8px 4px;
+  }
+  .matrix-type {
+    font-weight: 700;
+    color: #2b6cb0;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .matrix-cell.active {
+    background: #2b6cb0;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(43, 108, 176, 0.4);
+  }
+  .matrix-cell.active .matrix-type {
+    color: white;
+  }
+  .info-section {
+    margin-top: 25px;
+    padding: 18px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border-left: 4px solid #2b6cb0;
+  }
+  .info-section h3 {
+    font-size: 15px;
+    color: #2d3748;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .info-section p {
+    font-size: 13px;
+    color: #4a5568;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .info-section ul {
+    font-size: 13px;
+    color: #4a5568;
+    padding-left: 20px;
+    line-height: 1.6;
+  }
+  .error {
+    background: #fed7d7;
+    color: #c53030;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    display: none;
+  }
+  .error.show { display: block; }
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: #718096;
+    font-size: 12px;
+    border-top: 1px solid #e2e8f0;
+  }
+  @media (max-width: 600px) {
+    .input-section { grid-template-columns: 1fr; }
+    .result-details { grid-template-columns: 1fr; }
+    .content { padding: 20px; }
+    header { padding: 20px; }
+    header h1 { font-size: 22px; }
+    .matrix-cell { font-size: 11px; padding: 8px 4px; }
+    .matrix-type { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CPAK Classificatie</h1>
+      <p>Coronal Plane Alignment of the Knee — MacDessi et al. (2021)</p>
+    </header>
+
+    <div class="content">
+      <div class="input-section">
+        <div class="input-group">
+          <label for="mpta">MPTA</label>
+          <div class="description">Medial Proximal Tibial Angle</div>
+          <div class="input-row">
+            <input type="number" id="mpta" step="0.1" placeholder="bv. 87" />
+            <span class="unit">°</span>
+          </div>
+          <div class="normal-range">Normaal: ~87° (range 85-90°)</div>
+        </div>
+
+        <div class="input-group">
+          <label for="ldfa">LDFA</label>
+          <div class="description">Lateral Distal Femoral Angle</div>
+          <div class="input-row">
+            <input type="number" id="ldfa" step="0.1" placeholder="bv. 87" />
+            <span class="unit">°</span>
+          </div>
+          <div class="normal-range">Normaal: ~87° (range 85-90°)</div>
+        </div>
+      </div>
+
+      <div class="error" id="error"></div>
+
+      <div class="button-row">
+        <button class="btn-primary" onclick="bereken()">Bereken CPAK</button>
+        <button class="btn-secondary" onclick="reset()">Reset</button>
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-header">
+          <div class="type-badge" id="typeBadge">—</div>
+          <div class="result-title" id="typeTitle">—</div>
+        </div>
+        <div class="result-details">
+          <div class="detail-card">
+            <div class="detail-label">aHKA (MPTA − LDFA)</div>
+            <div class="detail-value">
+              <span id="ahkaValue">—</span>°
+              <small id="ahkaCategory">—</small>
+            </div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-label">JLO (MPTA + LDFA)</div>
+            <div class="detail-value">
+              <span id="jloValue">—</span>°
+              <small id="jloCategory">—</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="matrix-section">
+        <h2>CPAK Matrix</h2>
+        <div class="matrix" id="matrix">
+          <div class="matrix-cell matrix-header"></div>
+          <div class="matrix-cell matrix-header">Varus<br><small>aHKA &lt; -2°</small></div>
+          <div class="matrix-cell matrix-header">Neutraal<br><small>-2° tot 2°</small></div>
+          <div class="matrix-cell matrix-header">Valgus<br><small>aHKA &gt; 2°</small></div>
+
+          <div class="matrix-row-label">Apex distaal<br><small>JLO &gt; 183°</small></div>
+          <div class="matrix-cell" data-type="I"><span class="matrix-type">I</span>Varus / Apex distaal</div>
+          <div class="matrix-cell" data-type="II"><span class="matrix-type">II</span>Neutraal / Apex distaal</div>
+          <div class="matrix-cell" data-type="III"><span class="matrix-type">III</span>Valgus / Apex distaal</div>
+
+          <div class="matrix-row-label">Neutraal<br><small>177°-183°</small></div>
+          <div class="matrix-cell" data-type="IV"><span class="matrix-type">IV</span>Varus / Neutraal</div>
+          <div class="matrix-cell" data-type="V"><span class="matrix-type">V</span>Neutraal / Neutraal</div>
+          <div class="matrix-cell" data-type="VI"><span class="matrix-type">VI</span>Valgus / Neutraal</div>
+
+          <div class="matrix-row-label">Apex proximaal<br><small>JLO &lt; 177°</small></div>
+          <div class="matrix-cell" data-type="VII"><span class="matrix-type">VII</span>Varus / Apex proximaal</div>
+          <div class="matrix-cell" data-type="VIII"><span class="matrix-type">VIII</span>Neutraal / Apex proximaal</div>
+          <div class="matrix-cell" data-type="IX"><span class="matrix-type">IX</span>Valgus / Apex proximaal</div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Berekening</h3>
+        <p><strong>aHKA</strong> (arithmetic Hip-Knee-Ankle angle) = MPTA − LDFA</p>
+        <ul>
+          <li>Varus: aHKA &lt; −2°</li>
+          <li>Neutraal: −2° ≤ aHKA ≤ 2°</li>
+          <li>Valgus: aHKA &gt; 2°</li>
+        </ul>
+        <p style="margin-top: 10px;"><strong>JLO</strong> (Joint Line Obliquity) = MPTA + LDFA</p>
+        <ul>
+          <li>Apex proximaal: JLO &lt; 177°</li>
+          <li>Neutraal: 177° ≤ JLO ≤ 183°</li>
+          <li>Apex distaal: JLO &gt; 183°</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      Gebaseerd op MacDessi SJ et al. Bone Joint J. 2021;103-B(2):329-337
+    </footer>
+  </div>
+
+<script>
+function bereken() {
+  const mptaInput = document.getElementById('mpta').value;
+  const ldfaInput = document.getElementById('ldfa').value;
+  const errorDiv = document.getElementById('error');
+  const resultDiv = document.getElementById('result');
+
+  errorDiv.classList.remove('show');
+
+  if (mptaInput === '' || ldfaInput === '') {
+    errorDiv.textContent = 'Vul beide waarden (MPTA en LDFA) in.';
+    errorDiv.classList.add('show');
+    resultDiv.classList.remove('show');
+    clearMatrix();
+    return;
+  }
+
+  const mpta = parseFloat(mptaInput);
+  const ldfa = parseFloat(ldfaInput);
+
+  if (isNaN(mpta) || isNaN(ldfa)) {
+    errorDiv.textContent = 'Ongeldige waarden. Voer numerieke waarden in.';
+    errorDiv.classList.add('show');
+    resultDiv.classList.remove('show');
+    clearMatrix();
+    return;
+  }
+
+  if (mpta < 70 || mpta > 100 || ldfa < 70 || ldfa > 100) {
+    errorDiv.textContent = 'Waarschuwing: waarden buiten gebruikelijke range (70-100°). Controleer invoer.';
+    errorDiv.classList.add('show');
+  }
+
+  const ahka = mpta - ldfa;
+  const jlo = mpta + ldfa;
+
+  // aHKA categorie
+  let ahkaCat, ahkaIdx;
+  if (ahka < -2) { ahkaCat = 'Varus'; ahkaIdx = 0; }
+  else if (ahka > 2) { ahkaCat = 'Valgus'; ahkaIdx = 2; }
+  else { ahkaCat = 'Neutraal'; ahkaIdx = 1; }
+
+  // JLO categorie
+  let jloCat, jloIdx;
+  if (jlo > 183) { jloCat = 'Apex distaal'; jloIdx = 0; }
+  else if (jlo < 177) { jloCat = 'Apex proximaal'; jloIdx = 2; }
+  else { jloCat = 'Neutraal'; jloIdx = 1; }
+
+  // Type bepaling
+  const types = [
+    ['I', 'II', 'III'],
+    ['IV', 'V', 'VI'],
+    ['VII', 'VIII', 'IX']
+  ];
+  const type = types[jloIdx][ahkaIdx];
+
+  // Update UI
+  document.getElementById('typeBadge').textContent = 'Type ' + type;
+  document.getElementById('typeTitle').textContent = ahkaCat + ' / ' + jloCat;
+  document.getElementById('ahkaValue').textContent = ahka.toFixed(1);
+  document.getElementById('ahkaCategory').textContent = '(' + ahkaCat + ')';
+  document.getElementById('jloValue').textContent = jlo.toFixed(1);
+  document.getElementById('jloCategory').textContent = '(' + jloCat + ')';
+
+  resultDiv.classList.add('show');
+
+  // Highlight matrix cell
+  clearMatrix();
+  document.querySelector('[data-type="' + type + '"]').classList.add('active');
+}
+
+function clearMatrix() {
+  document.querySelectorAll('.matrix-cell[data-type]').forEach(c => c.classList.remove('active'));
+}
+
+function reset() {
+  document.getElementById('mpta').value = '';
+  document.getElementById('ldfa').value = '';
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('error').classList.remove('show');
+  clearMatrix();
+  document.getElementById('mpta').focus();
+}
+
+// Enter-toets om te berekenen
+document.querySelectorAll('input').forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') bereken();
+  });
+});
+</script>
+</body>
+</html>

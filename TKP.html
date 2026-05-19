@@ -511,7 +511,7 @@
           <label class="upload-zone" id="preop-upload-zone">
             <div class="icon">⊞</div>
             <h3>Upload long-leg standing Rx</h3>
-            <p>Sleep een bestand hierheen, of klik om te selecteren (.jpg, .png, .webp)</p>
+            <p>Sleep een bestand hierheen, klik om te selecteren, of <strong>plak een screenshot met Ctrl+V</strong> (.jpg, .png, .webp)</p>
             <input type="file" id="preop-file-input" accept="image/*">
           </label>
         </div>
@@ -532,8 +532,13 @@
               <button class="btn btn-danger" id="preop-reset" style="flex:1;">Reset</button>
             </div>
             <button class="btn btn-secondary" id="preop-change-image">Andere Rx uploaden</button>
-            <div style="font-size: 11px; color: #718096; line-height: 1.5; padding: 6px;">
-              <strong>Tip:</strong> sleep een gezet punt om het te verfijnen — de meting update meteen.
+            <div style="font-size: 11px; color: #4a5568; line-height: 1.6; padding: 8px; background: #f7fafc; border-radius: 6px;">
+              <strong>Bediening:</strong><br>
+              • <strong>Scrollwiel</strong> = in/uit zoomen rond cursor<br>
+              • <strong>Rechtsklik + slepen</strong> (of Shift+slepen) = pannen<br>
+              • <strong>Dubbelklik</strong> = zoom resetten<br>
+              • <strong>Punt slepen</strong> = verfijnen (meting update meteen)<br>
+              • <strong>Ctrl+V</strong> = screenshot rechtstreeks plakken
             </div>
           </aside>
         </div>
@@ -929,10 +934,28 @@ const PreOp = {
   image: null,
   points: {},
   stepIdx: 0,
-  scale: 1,
+  fitScale: 1,    // base scale to fit image in canvas
+  zoom: 1,        // additional zoom factor (1 = fit, >1 = zoomed in)
+  panX: 0,        // pan offset in canvas pixels
+  panY: 0,
   dragging: null,
-  dragOffset: {x:0, y:0}
+  dragOffset: {x:0, y:0},
+  panning: false,
+  panStart: null,
+  listenersAttached: false
 };
+
+// Image <-> canvas coordinate conversion (includes zoom + pan)
+function imgToCanvas(p) {
+  return {
+    x: p.x * PreOp.fitScale * PreOp.zoom + PreOp.panX,
+    y: p.y * PreOp.fitScale * PreOp.zoom + PreOp.panY
+  };
+}
+function canvasToImg(cx, cy) {
+  const s = PreOp.fitScale * PreOp.zoom;
+  return { x: (cx - PreOp.panX) / s, y: (cy - PreOp.panY) / s };
+}
 
 function renderPreOp() {
   const c = DB.get(State.currentCaseId);
@@ -945,6 +968,8 @@ function renderPreOp() {
     // Load existing
     PreOp.points = c.preop.landmarks || {};
     PreOp.stepIdx = STEPS.filter(s => PreOp.points[s.name]).length;
+    // Reset zoom/pan on case load
+    PreOp.zoom = 1; PreOp.panX = 0; PreOp.panY = 0;
     const img = new Image();
     img.onload = () => {
       PreOp.image = img;
@@ -1050,15 +1075,24 @@ function initPreOpCanvas() {
   const wrapper = canvas.parentElement;
   const maxW = wrapper.clientWidth - 8;
   const maxH = window.innerHeight * 0.75;
-  const scale = Math.min(maxW / PreOp.image.width, maxH / PreOp.image.height);
-  canvas.width = PreOp.image.width * scale;
-  canvas.height = PreOp.image.height * scale;
-  PreOp.scale = scale;
+  PreOp.fitScale = Math.min(maxW / PreOp.image.width, maxH / PreOp.image.height);
+  canvas.width = PreOp.image.width * PreOp.fitScale;
+  canvas.height = PreOp.image.height * PreOp.fitScale;
+  // Reset zoom/pan only on fresh load
+  if (!PreOp.zoom || PreOp.zoom === 1) {
+    PreOp.zoom = 1;
+    PreOp.panX = 0;
+    PreOp.panY = 0;
+  }
+  attachCanvasListeners();
   drawPreOp();
 }
 
 window.addEventListener('resize', () => {
-  if (State.view === 'casedetail' && State.activeTab === 'preop' && PreOp.image) initPreOpCanvas();
+  if (State.view === 'casedetail' && State.activeTab === 'preop' && PreOp.image) {
+    PreOp.zoom = 1; PreOp.panX = 0; PreOp.panY = 0;
+    initPreOpCanvas();
+  }
 });
 
 function drawPreOp() {
@@ -1066,7 +1100,10 @@ function drawPreOp() {
   const ctx = canvas.getContext('2d');
   if (!PreOp.image) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(PreOp.image, 0, 0, canvas.width, canvas.height);
+  // Draw image with zoom + pan
+  const w = PreOp.image.width * PreOp.fitScale * PreOp.zoom;
+  const h = PreOp.image.height * PreOp.fitScale * PreOp.zoom;
+  ctx.drawImage(PreOp.image, PreOp.panX, PreOp.panY, w, h);
 
   const p = PreOp.points;
   if (p.hip && p.medial_femur && p.lateral_femur) {
@@ -1084,87 +1121,213 @@ function drawPreOp() {
       drawPoint(ctx, p[s.name], i === PreOp.stepIdx ? '#FFD54F' : '#81C784', i + 1);
     }
   });
+  // Angle overlay: shown when all points placed
+  if (PreOp.stepIdx === STEPS.length) {
+    drawAngleOverlay(ctx);
+  }
+  // Zoom indicator (top-left)
+  drawZoomIndicator(ctx);
 }
 
 function drawLine(ctx, a, b, color, w) {
+  const ca = imgToCanvas(a), cb = imgToCanvas(b);
   ctx.beginPath();
-  ctx.moveTo(a.x * PreOp.scale, a.y * PreOp.scale);
-  ctx.lineTo(b.x * PreOp.scale, b.y * PreOp.scale);
+  ctx.moveTo(ca.x, ca.y);
+  ctx.lineTo(cb.x, cb.y);
   ctx.strokeStyle = color;
   ctx.lineWidth = w;
   ctx.stroke();
 }
 
 function drawPoint(ctx, p, color, label) {
-  const x = p.x * PreOp.scale, y = p.y * PreOp.scale;
+  const c = imgToCanvas(p);
+  const r = 4;          // smaller circle
+  const arm = 7;        // shorter crosshair arms
   ctx.beginPath();
-  ctx.arc(x, y, 7, 0, 2*Math.PI);
+  ctx.arc(c.x, c.y, r, 0, 2*Math.PI);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#1a202c';
   ctx.stroke();
+  // crosshair
   ctx.beginPath();
-  ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y);
-  ctx.moveTo(x, y - 12); ctx.lineTo(x, y + 12);
+  ctx.moveTo(c.x - arm, c.y); ctx.lineTo(c.x + arm, c.y);
+  ctx.moveTo(c.x, c.y - arm); ctx.lineTo(c.x, c.y + arm);
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = '#1a202c';
-  ctx.fillRect(x + 10, y - 18, 14, 14);
+  // small label
+  ctx.fillStyle = 'rgba(26, 32, 44, 0.85)';
+  ctx.fillRect(c.x + 6, c.y - 14, 12, 12);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 11px sans-serif';
-  ctx.fillText(label, x + 13, y - 7);
+  ctx.font = 'bold 9px sans-serif';
+  ctx.fillText(label, c.x + 9, c.y - 5);
 }
 
-document.getElementById('preop-canvas').addEventListener('mousedown', e => {
-  const canvas = e.currentTarget;
-  const rect = canvas.getBoundingClientRect();
-  const cx = e.clientX - rect.left;
-  const cy = e.clientY - rect.top;
-  for (let i = 0; i < STEPS.length; i++) {
-    const n = STEPS[i].name;
-    if (PreOp.points[n]) {
-      const px = PreOp.points[n].x * PreOp.scale, py = PreOp.points[n].y * PreOp.scale;
-      if (Math.hypot(px - cx, py - cy) < 12) {
-        PreOp.dragging = n;
-        PreOp.dragOffset = { x: cx - px, y: cy - py };
+function drawAngleOverlay(ctx) {
+  const r = computePreOp();
+  const canvas = ctx.canvas;
+  const lines = [
+    { txt: `MPTA: ${r.mpta.toFixed(1)}°`, color: '#FFB74D' },
+    { txt: `LDFA: ${r.ldfa.toFixed(1)}°`, color: '#FFB74D' },
+    { txt: `aHKA: ${r.ahka.toFixed(1)}° (${r.ahkaCat})`, color: r.ahkaCat === 'Neutraal' ? '#81C784' : (r.ahkaCat === 'Varus' ? '#FF8A65' : '#64B5F6') },
+    { txt: `JLO:  ${r.jlo.toFixed(1)}° (${r.jloCat})`, color: '#B39DDB' },
+    { txt: `CPAK Type ${r.type}`, color: '#FFD54F', bold: true }
+  ];
+  const lh = 18, pad = 10;
+  const boxW = 180;
+  const boxH = lh * lines.length + pad * 2;
+  const x = canvas.width - boxW - 8;
+  const y = 8;
+  ctx.fillStyle = 'rgba(26, 32, 44, 0.88)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, boxW, boxH);
+  ctx.strokeRect(x, y, boxW, boxH);
+  lines.forEach((line, i) => {
+    ctx.fillStyle = line.color;
+    ctx.font = (line.bold ? 'bold ' : '') + '12px ui-monospace, "SF Mono", Consolas, monospace';
+    ctx.fillText(line.txt, x + pad, y + pad + 13 + i * lh);
+  });
+}
+
+function drawZoomIndicator(ctx) {
+  if (PreOp.zoom === 1 && PreOp.panX === 0 && PreOp.panY === 0) return;
+  const txt = (PreOp.zoom * 100).toFixed(0) + '%';
+  ctx.fillStyle = 'rgba(26, 32, 44, 0.7)';
+  ctx.fillRect(8, 8, 50, 22);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(txt, 14, 24);
+}
+
+// ---- Canvas interactions: click landmarks, drag, zoom, pan ----
+function attachCanvasListeners() {
+  if (PreOp.listenersAttached) return;
+  PreOp.listenersAttached = true;
+  const canvas = document.getElementById('preop-canvas');
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    // Right click or middle click → pan
+    if (e.button === 2 || e.button === 1) {
+      PreOp.panning = true;
+      PreOp.panStart = { x: cx - PreOp.panX, y: cy - PreOp.panY };
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
+
+    // Shift+left click → also pan
+    if (e.shiftKey && e.button === 0) {
+      PreOp.panning = true;
+      PreOp.panStart = { x: cx - PreOp.panX, y: cy - PreOp.panY };
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
+
+    // Drag existing landmark
+    for (let i = 0; i < STEPS.length; i++) {
+      const n = STEPS[i].name;
+      if (PreOp.points[n]) {
+        const cp = imgToCanvas(PreOp.points[n]);
+        if (Math.hypot(cp.x - cx, cp.y - cy) < 12) {
+          PreOp.dragging = n;
+          PreOp.dragOffset = { x: cx - cp.x, y: cy - cp.y };
+          return;
+        }
+      }
+    }
+    // Place new landmark
+    if (PreOp.stepIdx < STEPS.length) {
+      PreOp.points[STEPS[PreOp.stepIdx].name] = canvasToImg(cx, cy);
+      PreOp.stepIdx++;
+      savePreOpState();
+      drawPreOp();
+      updatePreOpPanel();
+      if (PreOp.stepIdx === STEPS.length) {
+        renderPreOpResult(computePreOp());
+      }
+    }
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    if (PreOp.panning) {
+      PreOp.panX = cx - PreOp.panStart.x;
+      PreOp.panY = cy - PreOp.panStart.y;
+      drawPreOp();
+      return;
+    }
+    if (PreOp.dragging) {
+      const ix = (cx - PreOp.dragOffset.x - PreOp.panX) / (PreOp.fitScale * PreOp.zoom);
+      const iy = (cy - PreOp.dragOffset.y - PreOp.panY) / (PreOp.fitScale * PreOp.zoom);
+      PreOp.points[PreOp.dragging] = { x: ix, y: iy };
+      drawPreOp();
+      if (PreOp.stepIdx === STEPS.length) {
+        renderPreOpResult(computePreOp());
+      }
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    if (PreOp.panning) { PreOp.panning = false; canvas.style.cursor = 'crosshair'; }
+    if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
+  });
+  canvas.addEventListener('mouseleave', () => {
+    if (PreOp.panning) { PreOp.panning = false; canvas.style.cursor = 'crosshair'; }
+    if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
+  });
+
+  // Zoom with mouse wheel (around cursor)
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    // Image point under cursor before zoom
+    const imgPt = canvasToImg(cx, cy);
+    const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+    const newZoom = Math.max(1, Math.min(8, PreOp.zoom * factor));
+    PreOp.zoom = newZoom;
+    // Adjust pan so cursor stays over same image point
+    PreOp.panX = cx - imgPt.x * PreOp.fitScale * newZoom;
+    PreOp.panY = cy - imgPt.y * PreOp.fitScale * newZoom;
+    // Clamp pan so image stays at least partially visible
+    drawPreOp();
+  }, { passive: false });
+
+  // Double-click → reset zoom/pan
+  canvas.addEventListener('dblclick', () => {
+    PreOp.zoom = 1; PreOp.panX = 0; PreOp.panY = 0;
+    drawPreOp();
+  });
+}
+
+// ---- Ctrl+V paste support ----
+document.addEventListener('paste', async (e) => {
+  // Only in pre-op tab of case detail
+  if (State.view !== 'casedetail' || State.activeTab !== 'preop') return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        await loadPreOpImage(file);
         return;
       }
     }
   }
-  if (PreOp.stepIdx < STEPS.length) {
-    PreOp.points[STEPS[PreOp.stepIdx].name] = { x: cx / PreOp.scale, y: cy / PreOp.scale };
-    PreOp.stepIdx++;
-    savePreOpState();
-    drawPreOp();
-    updatePreOpPanel();
-    if (PreOp.stepIdx === STEPS.length) {
-      const r = computePreOp();
-      renderPreOpResult(r);
-    }
-  }
-});
-
-document.getElementById('preop-canvas').addEventListener('mousemove', e => {
-  if (!PreOp.dragging) return;
-  const canvas = e.currentTarget;
-  const rect = canvas.getBoundingClientRect();
-  const cx = e.clientX - rect.left - PreOp.dragOffset.x;
-  const cy = e.clientY - rect.top - PreOp.dragOffset.y;
-  PreOp.points[PreOp.dragging] = { x: cx / PreOp.scale, y: cy / PreOp.scale };
-  drawPreOp();
-  if (PreOp.stepIdx === STEPS.length) {
-    const r = computePreOp();
-    renderPreOpResult(r);
-  }
-});
-
-document.getElementById('preop-canvas').addEventListener('mouseup', () => {
-  if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
-});
-document.getElementById('preop-canvas').addEventListener('mouseleave', () => {
-  if (PreOp.dragging) { PreOp.dragging = null; savePreOpState(); }
 });
 
 function savePreOpState() {
